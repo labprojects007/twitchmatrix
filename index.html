@@ -1059,23 +1059,13 @@ async function refreshDisplayedMatrixStreams() {
     await refreshMatrix();
     return;
   }
-
-  const tiles = Array.from(matrixBody.querySelectorAll('.tile[data-streamer]'));
-  for (let i = 0; i < tiles.length; i++) {
-    const tile = tiles[i];
-    const name = tile.dataset.streamer;
-    const iframe = tile.querySelector('iframe');
-    refreshMatrixTile(name, iframe);
-    if (i < tiles.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 40));
-    }
-  }
 }
 
 
 
 function openMatrix() {
   if (!lastLive.length) return;
+  matrixBody.querySelectorAll('iframe').forEach((iframe) => { iframe.src = 'about:blank'; });
   matrixBody.innerHTML = '';
   const host = hostName();
   if (!host) {
