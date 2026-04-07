@@ -201,7 +201,7 @@
     .matrix-online-feed-segment{
       display:inline-flex;
       align-items:center;
-      gap:24px;
+      gap:8px;
       padding-right:56px;
       color:#3dfb55;
       font-size:11px;
@@ -217,6 +217,7 @@
     }
     .matrix-online-feed-name:hover{ text-decoration:underline; }
     .matrix-online-feed-sep{ opacity:.65; }
+    .matrix-online-feed{ cursor:pointer; }
     .retrieve-pending .matrix-online-feed-segment{ color:#9e9ea1; }
     @keyframes matrixFeedScrollLeft{
       from{ transform:translateX(0); }
@@ -1071,8 +1072,6 @@ function renderMatrixOnlineFeed() {
 
 
 matrixOnlineFeedEl?.addEventListener("click", async (e) => {
-  const btn = e.target.closest(".matrix-online-feed-name");
-  if (!btn) return;
   e.preventDefault();
   await retrieveAll();
 });
