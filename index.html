@@ -23,6 +23,7 @@
       white-space:nowrap;
     }
     .tier-pill .online-count{ color:#3dfb55; font-weight:700; }
+    .retrieve-pending .tier-pill .online-count{ color:#9e9ea1; }
 
     /* Controls */
     .controls { width:100%; max-width:1100px; display:flex; flex-direction:column; gap:10px; margin-top:6px; }
@@ -183,7 +184,7 @@
       transform:translateY(-50%);
       overflow:hidden;
       padding:0;
-      pointer-events:none;
+      pointer-events:auto;
       white-space:nowrap;
       min-height:14px;
     }
@@ -206,6 +207,17 @@
       font-size:11px;
       line-height:1.2;
     }
+    .matrix-online-feed-name{
+      border:0;
+      background:none;
+      color:inherit;
+      font:inherit;
+      padding:0;
+      cursor:pointer;
+    }
+    .matrix-online-feed-name:hover{ text-decoration:underline; }
+    .matrix-online-feed-sep{ opacity:.65; }
+    .retrieve-pending .matrix-online-feed-segment{ color:#9e9ea1; }
     @keyframes matrixFeedScrollLeft{
       from{ transform:translateX(0); }
       to{ transform:translateX(-50%); }
@@ -288,7 +300,7 @@
       font-size:11px;
       line-height:1.2;
       font-weight:600;
-      pointer-events:none;
+      pointer-events:auto;
     }
   </style>
 </head>
@@ -716,7 +728,14 @@ function pruneResultsCacheToVisibleNames() {
 }
 
 /* ---------- Phase 1: Retrieve ---------- */
+function setRetrievePending(isPending){
+  document.body.classList.toggle("retrieve-pending", !!isPending);
+}
+
 async function retrieveAll(){
+  if (retrievePromise) return retrievePromise;
+  retrievePromise = (async () => {
+  setRetrievePending(true);
   try{
     statusEl.textContent = "Retrieving categories (top 20) and statuses…";
     pickedEl.textContent = "";
@@ -774,7 +793,12 @@ async function retrieveAll(){
   }catch(e){
     console.error(e);
     statusEl.textContent = "Retrieve failed (categories or status). See console for details.";
+  } finally {
+    setRetrievePending(false);
+    retrievePromise = null;
   }
+  })();
+  return retrievePromise;
 }
 
 /* ---------- Phase 2: Generate ---------- */
@@ -938,6 +962,7 @@ const matrixBackdrop = document.getElementById('matrixBackdrop');
 const matrixBody = document.getElementById('matrixBody');
 const matrixRefreshCountdownEl = document.getElementById('matrixRefreshCountdown');
 const matrixOnlineFeedEl = document.getElementById('matrixOnlineFeed');
+let retrievePromise = null;
 let matrixRefreshIntervalId = null;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
@@ -1031,15 +1056,26 @@ function renderMatrixOnlineFeed() {
     matrixOnlineFeedEl.innerHTML = "";
     return;
   }
+  const markup = names
+    .map((name, idx) => `${idx ? "<span class=\"matrix-online-feed-sep\">•</span>" : ""}<button type=\"button\" class=\"matrix-online-feed-name\" data-name=\"${name}\">${name}</button>`)
+    .join("");
   const text = names.join(" • ");
   const estDuration = Math.min(10, Math.max(3.5, Math.round(text.length / 8)));
   matrixOnlineFeedEl.innerHTML = `
     <div class="matrix-online-feed-track" style="animation-duration:${estDuration}s">
-      <span class="matrix-online-feed-segment">${text}</span>
-      <span class="matrix-online-feed-segment">${text}</span>
+      <span class="matrix-online-feed-segment">${markup}</span>
+      <span class="matrix-online-feed-segment" aria-hidden="true">${markup}</span>
     </div>
   `;
 }
+
+
+matrixOnlineFeedEl?.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".matrix-online-feed-name");
+  if (!btn) return;
+  e.preventDefault();
+  await retrieveAll();
+});
 
 async function refreshDisplayedMatrixStreams() {
   if (matrixBackdrop.style.display !== 'flex') return;
