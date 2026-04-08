@@ -1008,15 +1008,25 @@ function disposeAllMatrixIframes({ remove = false } = {}) {
   });
 }
 
+function createMatrixIframe(name) {
+  const iframe = document.createElement('iframe');
+  iframe.src = buildPlayerSrc(name);
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.loading = 'lazy';
+  return iframe;
+}
+
 function refreshMatrixTile(name, iframe) {
-  if (!iframe) return;
-  disposeMatrixIframe(iframe);
+  if (!iframe || !iframe.isConnected) return iframe;
+  const replacement = createMatrixIframe(name);
   const timerId = setTimeout(() => {
     matrixTileRefreshTimers.delete(iframe);
     if (!iframe.isConnected || matrixBackdrop.style.display !== 'flex') return;
-    iframe.src = buildPlayerSrc(name);
+    iframe.replaceWith(replacement);
   }, 150);
   matrixTileRefreshTimers.set(iframe, timerId);
+  disposeMatrixIframe(iframe);
+  return replacement;
 }
 
 function getRefreshMinutes() {
@@ -1155,15 +1165,14 @@ function openMatrix() {
     const v = (typeof r.viewers === 'number') ? ` • ${r.viewers.toLocaleString()} viewers` : '';
     hint.textContent = `${name}${cat}${v}`;
 
-    const iframe = document.createElement('iframe');
-    iframe.src = buildPlayerSrc(name);
-    iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-    iframe.loading = 'lazy';
+    let iframe = createMatrixIframe(name);
 
     const refreshBtn = document.createElement('button');
     refreshBtn.className = 'matrix-tile-button matrix-refresh-tile';
     refreshBtn.textContent = '↻';
-    refreshBtn.onclick = () => refreshMatrixTile(name, iframe);
+    refreshBtn.onclick = () => {
+      iframe = refreshMatrixTile(name, iframe);
+    };
 
     const xbtn = document.createElement('button');
     xbtn.className = 'matrix-tile-button matrix-blacklist';
