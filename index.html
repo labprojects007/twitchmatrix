@@ -278,12 +278,6 @@
       color:#ff5555;
       border-radius:4px;
     }
-    .matrix-refresh-tile {
-      top:6px;
-      left:6px;
-      color:#d7d7ff;
-      border-radius:50%;
-    }
     .matrix-streamer-name{
       position:absolute;
       top:6px;
@@ -1016,19 +1010,6 @@ function createMatrixIframe(name) {
   return iframe;
 }
 
-function refreshMatrixTile(name, iframe) {
-  if (!iframe || !iframe.isConnected) return iframe;
-  const replacement = createMatrixIframe(name);
-  const timerId = setTimeout(() => {
-    matrixTileRefreshTimers.delete(iframe);
-    if (!iframe.isConnected || matrixBackdrop.style.display !== 'flex') return;
-    iframe.replaceWith(replacement);
-  }, 150);
-  matrixTileRefreshTimers.set(iframe, timerId);
-  disposeMatrixIframe(iframe);
-  return replacement;
-}
-
 function getRefreshMinutes() {
   const n = parseInt(document.getElementById("inputRefresh")?.value || "0", 10);
   return Number.isFinite(n) && n >= 0 ? n : 0;
@@ -1167,13 +1148,6 @@ function openMatrix() {
 
     let iframe = createMatrixIframe(name);
 
-    const refreshBtn = document.createElement('button');
-    refreshBtn.className = 'matrix-tile-button matrix-refresh-tile';
-    refreshBtn.textContent = '↻';
-    refreshBtn.onclick = () => {
-      iframe = refreshMatrixTile(name, iframe);
-    };
-
     const xbtn = document.createElement('button');
     xbtn.className = 'matrix-tile-button matrix-blacklist';
     xbtn.textContent = '✖';
@@ -1189,7 +1163,7 @@ function openMatrix() {
     nameBadge.className = 'matrix-streamer-name';
     nameBadge.textContent = name;
 
-    tile.append(iframe, refreshBtn, xbtn, nameBadge, hint);
+    tile.append(iframe, xbtn, nameBadge, hint);
     matrixBody.appendChild(tile);
 
     // fade the hint after 2.5s
