@@ -967,6 +967,7 @@ let retrievePromise = null;
 let matrixRefreshIntervalId = null;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
+const MATRIX_REFRESH_RELOAD_FLAG = 'twitchmatrix_refresh_reload';
 function hostName(){ return window.location.hostname; }
 
 function buildPlayerSrc(name) {
@@ -1258,9 +1259,10 @@ matrixBackdrop.querySelector('.matrix-close').addEventListener('click', closeMat
 matrixBackdrop.addEventListener('click', (e)=>{ if (e.target === matrixBackdrop) closeMatrix(); });
 
 async function refreshMatrix() {
-  await retrieveAll();
-  generateFromCache();
-  openMatrix();
+  matrixBody.querySelectorAll('iframe').forEach((iframe) => iframe.remove());
+  matrixBody.innerHTML = '';
+  sessionStorage.setItem(MATRIX_REFRESH_RELOAD_FLAG, '1');
+  window.location.reload();
 }
 
 
@@ -1286,6 +1288,13 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   matrixRefreshBtn.onclick = refreshMatrix;
   openBtn.onclick = () => finalURL && window.open(finalURL, "_blank");
   multiBtn.onclick = () => multiURL && window.open(multiURL, "_blank");
+
+  if (sessionStorage.getItem(MATRIX_REFRESH_RELOAD_FLAG) === '1') {
+    sessionStorage.removeItem(MATRIX_REFRESH_RELOAD_FLAG);
+    await retrieveAll();
+    generateFromCache();
+    openMatrix();
+  }
 
   // === Preview interactions ===
   const gridEl = document.getElementById("gridContainer");
