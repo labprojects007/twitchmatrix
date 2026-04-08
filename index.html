@@ -967,6 +967,7 @@ let retrievePromise = null;
 let matrixRefreshIntervalId = null;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
+const matrixTileRefreshTimers = new WeakMap();
 const MATRIX_REFRESH_RELOAD_FLAG = 'twitchmatrix_refresh_reload';
 function hostName(){ return window.location.hostname; }
 
@@ -983,12 +984,39 @@ function buildPlayerSrc(name) {
   return `https://player.twitch.tv/?${params.toString()}`;
 }
 
+function clearMatrixTileRefreshTimer(iframe) {
+  if (!iframe) return;
+  const timerId = matrixTileRefreshTimers.get(iframe);
+  if (timerId) {
+    clearTimeout(timerId);
+    matrixTileRefreshTimers.delete(iframe);
+  }
+}
+
+function disposeMatrixIframe(iframe, { remove = false } = {}) {
+  if (!iframe) return;
+  clearMatrixTileRefreshTimer(iframe);
+  iframe.src = 'about:blank';
+  iframe.removeAttribute('src');
+  iframe.srcdoc = '';
+  if (remove) iframe.remove();
+}
+
+function disposeAllMatrixIframes({ remove = false } = {}) {
+  matrixBody.querySelectorAll('iframe').forEach((iframe) => {
+    disposeMatrixIframe(iframe, { remove });
+  });
+}
+
 function refreshMatrixTile(name, iframe) {
   if (!iframe) return;
-  iframe.src = 'about:blank';
-  setTimeout(() => {
+  disposeMatrixIframe(iframe);
+  const timerId = setTimeout(() => {
+    matrixTileRefreshTimers.delete(iframe);
+    if (!iframe.isConnected || matrixBackdrop.style.display !== 'flex') return;
     iframe.src = buildPlayerSrc(name);
   }, 150);
+  matrixTileRefreshTimers.set(iframe, timerId);
 }
 
 function getRefreshMinutes() {
@@ -1104,7 +1132,7 @@ async function refreshDisplayedMatrixStreams() {
 
 function openMatrix() {
   if (!lastLive.length) return;
-  matrixBody.querySelectorAll('iframe').forEach((iframe) => { iframe.src = 'about:blank'; });
+  disposeAllMatrixIframes({ remove: true });
   matrixBody.innerHTML = '';
   const host = hostName();
   if (!host) {
@@ -1245,7 +1273,7 @@ function closeMatrix() {
   stopMatrixRefreshInterval();
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
-  matrixBody.querySelectorAll('iframe').forEach((iframe) => { iframe.src = 'about:blank'; });
+  disposeAllMatrixIframes({ remove: true });
   matrixBackdrop.style.display = 'none';
   matrixBody.innerHTML = '';
   if (matrixOnlineFeedEl) matrixOnlineFeedEl.innerHTML = '';
@@ -1257,9 +1285,14 @@ function closeMatrix() {
 }
 matrixBackdrop.querySelector('.matrix-close').addEventListener('click', closeMatrix);
 matrixBackdrop.addEventListener('click', (e)=>{ if (e.target === matrixBackdrop) closeMatrix(); });
+window.addEventListener('beforeunload', () => {
+  stopMatrixRefreshInterval();
+  disposeAllMatrixIframes({ remove: true });
+});
 
 async function refreshMatrix() {
-  matrixBody.querySelectorAll('iframe').forEach((iframe) => iframe.remove());
+  stopMatrixRefreshInterval();
+  disposeAllMatrixIframes({ remove: true });
   matrixBody.innerHTML = '';
   sessionStorage.setItem(MATRIX_REFRESH_RELOAD_FLAG, '1');
   window.location.reload();
