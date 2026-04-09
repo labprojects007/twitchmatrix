@@ -1067,7 +1067,8 @@ function getOnlineFeedNames() {
     for(const name of (tiers[i] || [])){
       const r = resultsCache.get(name);
       if(!r?.isLive || hidden.has(name)) continue;
-      names.push(name);
+      const suffix = r.category ? ` (${abbreviateCategory(r.category)})` : '';
+      names.push({ name, label: `${name}${suffix}` });
     }
   }
   return names;
@@ -1075,15 +1076,15 @@ function getOnlineFeedNames() {
 
 function renderMatrixOnlineFeed() {
   if(!matrixOnlineFeedEl) return;
-  const names = getOnlineFeedNames();
-  if(!names.length){
+  const feedItems = getOnlineFeedNames();
+  if(!feedItems.length){
     matrixOnlineFeedEl.innerHTML = "";
     return;
   }
-  const markup = names
-    .map((name, idx) => `${idx ? "<span class=\"matrix-online-feed-sep\">•</span>" : ""}<button type=\"button\" class=\"matrix-online-feed-name\" data-name=\"${name}\">${name}</button>`)
+  const markup = feedItems
+    .map((item, idx) => `${idx ? "<span class=\"matrix-online-feed-sep\">•</span>" : ""}<button type=\"button\" class=\"matrix-online-feed-name\" data-name=\"${item.name}\">${item.label}</button>`)
     .join("");
-  const text = names.join(" • ");
+  const text = feedItems.map(item => item.label).join(" • ");
   const estDuration = Math.min(10, Math.max(3.5, Math.round(text.length / 8)));
   matrixOnlineFeedEl.innerHTML = `
     <div class="matrix-online-feed-track" style="animation-duration:${estDuration}s">
