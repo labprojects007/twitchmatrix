@@ -22,7 +22,7 @@ architecturetv
 aprylanonymous
 potentialbliss
 yoshimyan
-nezst
+nest
 daveezz
 jonsf
 ninthchild
@@ -33,7 +33,6 @@ cooksux
 meesterkeem
 gogoborgor
 sarahbridgewater
-therealshookon3
 4amlaundry
 gaijin1up
 nomadicgaijin
@@ -42,6 +41,8 @@ jasontheween
 sakurashymko
 globiklive
 jakenbakelive
+therealshookon3
+thund3rspann3r
 
 [tier2]
 alison_ace
@@ -115,6 +116,7 @@ nmplol
 tiffanobi
 lo3tus
 rennsz
+cdawg
 terrybarentsen
 sahranisworld
 ridetheline
