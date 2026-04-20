@@ -24,7 +24,6 @@
     }
     .tier-pill .online-count{ color:#3dfb55; font-weight:700; }
     .retrieve-pending .tier-pill .online-count{ color:#9e9ea1; }
-    .tier-pill.clickable{ cursor:pointer; }
 
     /* Controls */
     .controls { width:100%; max-width:1100px; display:flex; flex-direction:column; gap:10px; margin-top:6px; }
@@ -582,7 +581,7 @@ function renderTierOnlineSnapshot(){
   if(!matrixTierStatsEl) return;
   const snapshot = getTierOnlineSnapshot();
   const hasLiveData = snapshot.some(s => s.online > 0) || resultsCache.size > 0;
-  const html = snapshot.map(s => `<span class="tier-pill clickable" data-tier-index="${s.tier - 1}" title="Show Tier ${s.tier} previews"><span>${s.limit}</span> / <span class="online-count">${s.online}</span></span>`).join("");
+  const html = snapshot.map(s => `<span class="tier-pill" title="Tier ${s.tier}"><span>${s.limit}</span> / <span class="online-count">${s.online}</span></span>`).join("");
   if(hasLiveData){
     matrixTierStatsEl.innerHTML = html;
   } else {
@@ -1284,15 +1283,6 @@ async function refreshMatrix() {
 }
 
 
-function openTierLivePreview(tierIndex, title){
-  const names = (tiers[tierIndex] || []).filter(n => (resultsCache.get(n)?.isLive));
-  if (!names.length) return;
-  const grid = document.createElement('div');
-  grid.className = 'preview-grid';
-  names.forEach(n => grid.appendChild(makePreviewCard(n)));
-  openPreview({ title, nodes: [ grid ] });
-}
-
 /* ---------- Boot ---------- */
 document.addEventListener("DOMContentLoaded", async ()=>{
   try{
@@ -1342,16 +1332,12 @@ document.addEventListener("DOMContentLoaded", async ()=>{
     if (!header) return;
     const col = header.parentElement;
     const tierIndex = Array.prototype.indexOf.call(col.parentElement.children, col);
-    openTierLivePreview(tierIndex, header.textContent.trim());
-  });
-
-  // Click a matrix pill -> gallery of live names in that tier
-  matrixTierStatsEl?.addEventListener("click", (e) => {
-    const pill = e.target.closest('.tier-pill[data-tier-index]');
-    if (!pill) return;
-    const tierIndex = Number.parseInt(pill.dataset.tierIndex || '-1', 10);
-    if (!Number.isFinite(tierIndex) || tierIndex < 0) return;
-    openTierLivePreview(tierIndex, `Tier ${tierIndex + 1} Preview`);
+    const names = (tiers[tierIndex] || []).filter(n => (resultsCache.get(n)?.isLive));
+    if (!names.length) return;
+    const grid = document.createElement('div');
+    grid.className = 'preview-grid';
+    names.forEach(n => grid.appendChild(makePreviewCard(n)));
+    openPreview({ title: header.textContent.trim(), nodes: [ grid ] });
   });
 });
 </script>
