@@ -1,6 +1,8 @@
 [tier1]
 milschbaum
 minuself
+alison_ace
+kunshikitty
 chloe__irl
 waterlynn
 jinnytty
@@ -34,6 +36,7 @@ sarahbridgewater
 4amlaundry
 gaijin1up
 nomadicgaijin
+ceweina
 nohaileeno
 jessicakohh
 janeparrk
@@ -46,8 +49,6 @@ therealshookon3
 thund3rspann3r
 
 [tier2]
-alison_ace
-kunshikitty
 kattpaccino
 pizzaprincessg
 stay_c
@@ -56,8 +57,11 @@ sawlties
 junicats
 akanemsko
 llunaclark
+allcakes
+bigcocobuns
 helga
 karii
+maya
 benjamool
 ronnyberger
 mrpol
@@ -98,6 +102,7 @@ ricababyyy
 yukisgarden
 onigiri
 cybersteffie
+miamakesmusic
 foxiekt
 dinah
 mhyochi
