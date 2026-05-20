@@ -272,6 +272,9 @@
       right:6px;
       color:#9ca3af;
       border-radius:4px;
+      font-size:13px;
+      font-weight:700;
+      line-height:1;
     }
     .matrix-blacklist.state-pinned { color:#22c55e; }
     .matrix-blacklist.state-blacklisted { color:#ff5555; }
@@ -1094,14 +1097,17 @@ function setMatrixPinStateButtonStyle(btn, name) {
   btn.classList.remove('state-pinned', 'state-blacklisted');
   if (sessionPins.has(name)) {
     btn.classList.add('state-pinned');
+    btn.textContent = '✓';
     btn.title = 'Pinned (click to clear)';
     return;
   }
   if (sessionBlacklist.has(name)) {
     btn.classList.add('state-blacklisted');
+    btn.textContent = '✖';
     btn.title = 'Blacklisted (click to pin)';
     return;
   }
+  btn.textContent = '';
   btn.title = 'Neutral (click to blacklist)';
 }
 
@@ -1279,7 +1285,6 @@ function openMatrix() {
 
     const xbtn = document.createElement('button');
     xbtn.className = 'matrix-tile-button matrix-blacklist';
-    xbtn.textContent = '✖';
     setMatrixPinStateButtonStyle(xbtn, name);
     xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
 
