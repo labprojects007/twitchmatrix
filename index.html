@@ -1137,39 +1137,49 @@ function getMatrixReplacementCandidates(currentName) {
     .filter(name => !displayed.has(String(name).toLowerCase()));
 }
 
+function resetMatrixForReinit() {
+  closeAllMatrixStreamPickers();
+  stopMatrixRefreshInterval();
+  const tiles = Array.from(matrixBody.querySelectorAll('.tile'));
+  for (const tile of tiles) {
+    const badge = tile.querySelector('.matrix-streamer-name');
+    const name = tile.dataset.streamer || badge?.textContent || 'Loading stream';
+    if (badge) {
+      badge.textContent = `${name} (reloading...)`;
+      badge.classList.add('working');
+    }
+    const iframe = tile.querySelector('iframe');
+    disposeMatrixIframe(iframe, { remove: true });
+  }
+  disposeAllMatrixIframes({ remove: true });
+  matrixBody.innerHTML = '';
+  if (matrixOnlineFeedEl) matrixOnlineFeedEl.innerHTML = '';
+}
+
 async function replaceMatrixTileStream(tile, nextName) {
   if (!tile || !nextName) return;
   const prevName = tile.dataset.streamer || '';
-  const badge = tile.querySelector('.matrix-streamer-name');
-  const oldName = tile.dataset.streamer || badge?.textContent || 'Loading stream';
-  if (badge) {
-    badge.textContent = `${oldName} (reloading...)`;
-    badge.classList.add('working');
+  if (prevName && String(prevName).toLowerCase() === String(nextName).toLowerCase()) return;
+
+  const existingOrder = getDisplayedMatrixStreams();
+  const replacementOrder = existingOrder.length ? existingOrder.slice() : (lastLive || []).slice();
+  let replaced = false;
+  const prevLc = String(prevName).toLowerCase();
+  const nextLc = String(nextName).toLowerCase();
+  const nextLive = replacementOrder.map((name) => {
+    if (!replaced && String(name).toLowerCase() === prevLc) {
+      replaced = true;
+      return nextName;
+    }
+    return name;
+  });
+  if (!replaced && !nextLive.some(name => String(name).toLowerCase() === nextLc)) {
+    nextLive.push(nextName);
   }
-  const oldIframe = tile.querySelector('iframe');
-  disposeMatrixIframe(oldIframe, { remove: true });
-  tile.dataset.streamer = nextName;
-  if (prevName) {
-    const prevLc = String(prevName).toLowerCase();
-    let replaced = false;
-    lastLive = (lastLive || []).map(name => {
-      if (!replaced && String(name).toLowerCase() === prevLc) {
-        replaced = true;
-        return nextName;
-      }
-      return name;
-    });
-    if (!replaced) lastLive.push(nextName);
-  }
-  if (badge) badge.textContent = nextName;
-  const stateBtn = tile.querySelector('.matrix-blacklist');
-  if (stateBtn) setMatrixPinStateButtonStyle(stateBtn, nextName);
-  tile.querySelector('.matrix-streamer-picker')?.remove();
-  const nextIframe = createMatrixIframe(nextName);
-  tile.insertBefore(nextIframe, tile.firstChild);
-  if (badge) {
-    badge.classList.remove('working');
-  }
+
+  lastLive = nextLive;
+  resetMatrixForReinit();
+  openMatrix();
 }
 
 function openMatrixTilePicker(tile) {
@@ -1421,22 +1431,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 async function refreshMatrix() {
-  closeAllMatrixStreamPickers();
-  stopMatrixRefreshInterval();
-  const tiles = Array.from(matrixBody.querySelectorAll('.tile'));
-  for (const tile of tiles) {
-    const badge = tile.querySelector('.matrix-streamer-name');
-    const name = tile.dataset.streamer || badge?.textContent || 'Loading stream';
-    if (badge) {
-      badge.textContent = `${name} (reloading...)`;
-      badge.classList.add('working');
-    }
-    const iframe = tile.querySelector('iframe');
-    disposeMatrixIframe(iframe, { remove: true });
-    }
-  disposeAllMatrixIframes({ remove: true });
-  matrixBody.innerHTML = '';
-  if (matrixOnlineFeedEl) matrixOnlineFeedEl.innerHTML = '';
+  resetMatrixForReinit();
   await retrieveAll();
   generateFromCache();
   openMatrix();
