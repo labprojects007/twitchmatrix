@@ -182,21 +182,22 @@
       right:56px;
       top:50%;
       transform:translateY(-50%);
-      overflow:hidden;
+      overflow-x:auto;
+      overflow-y:hidden;
       padding:0;
       pointer-events:auto;
       white-space:nowrap;
       min-height:14px;
+      scrollbar-width:none;
+      -webkit-overflow-scrolling:touch;
+      cursor:grab;
     }
+    .matrix-online-feed::-webkit-scrollbar{ display:none; }
     .matrix-online-feed-track{
       display:inline-flex;
       align-items:center;
       white-space:nowrap;
       width:max-content;
-      will-change:transform;
-      animation-name:matrixFeedScrollLeft;
-      animation-timing-function:linear;
-      animation-iteration-count:infinite;
     }
     .matrix-online-feed-segment{
       display:inline-flex;
@@ -217,12 +218,7 @@
     }
     .matrix-online-feed-name:hover{ text-decoration:underline; }
     .matrix-online-feed-sep{ opacity:.65; }
-    .matrix-online-feed{ cursor:pointer; }
     .retrieve-pending .matrix-online-feed-segment{ color:#9e9ea1; }
-    @keyframes matrixFeedScrollLeft{
-      from{ transform:translateX(0); }
-      to{ transform:translateX(-50%); }
-    }
     .matrix-tier-stats{
       display:flex;
       gap:4px;
@@ -976,6 +972,7 @@ const matrixRefreshCountdownEl = document.getElementById('matrixRefreshCountdown
 const matrixOnlineFeedEl = document.getElementById('matrixOnlineFeed');
 let retrievePromise = null;
 let matrixRefreshIntervalId = null;
+let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
 const matrixTileRefreshTimers = new WeakMap();
@@ -1077,8 +1074,12 @@ function startMatrixRefreshInterval() {
     if (matrixCountdownSeconds > 0) return;
     matrixCountdownSeconds = minutes * 60;
     renderMatrixRefreshCountdown();
-    refreshDisplayedMatrixStreams()
-      .catch(err => console.error("Interval refresh failed", err));
+    if (!matrixRefreshInProgress) {
+      matrixRefreshInProgress = true;
+      refreshDisplayedMatrixStreams()
+        .catch(err => console.error("Interval refresh failed", err))
+        .finally(() => { matrixRefreshInProgress = false; });
+    }
   }, 1000);
 }
 
@@ -1246,22 +1247,20 @@ function getOnlineFeedNames() {
 }
 
 function renderMatrixOnlineFeed() {
-  if(!matrixOnlineFeedEl) return;
+  if (!matrixOnlineFeedEl) return;
   const feedItems = getOnlineFeedNames();
-  if(!feedItems.length){
-    matrixOnlineFeedEl.innerHTML = "";
+  if (!feedItems.length) {
+    matrixOnlineFeedEl.innerHTML = '';
     return;
   }
   const markup = feedItems
-    .map((item, idx) => `${idx ? "<span class=\"matrix-online-feed-sep\">•</span>" : ""}<button type=\"button\" class=\"matrix-online-feed-name\" data-name=\"${item.name}\">${item.label}</button>`)
-    .join("");
-  const text = feedItems.map(item => item.label).join(" • ");
-  const estDuration = Math.min(10, Math.max(3.5, Math.round(text.length / 8)));
+    .map((item, idx) => `${idx
+      ? '<span class="matrix-online-feed-sep">•</span>'
+      : ''}<button type="button" class="matrix-online-feed-name"
+      data-name="${item.name}">${item.label}</button>`)
+    .join('');
   matrixOnlineFeedEl.innerHTML = `
-    <div class="matrix-online-feed-track" style="animation-duration:${estDuration}s">
-      <span class="matrix-online-feed-segment">${markup}</span>
-      <span class="matrix-online-feed-segment" aria-hidden="true">${markup}</span>
-    </div>
+    <span class="matrix-online-feed-segment">${markup}</span>
   `;
 }
 
