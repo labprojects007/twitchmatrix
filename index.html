@@ -1196,6 +1196,8 @@ function openMatrixTilePicker(tile) {
   const candidates = getMatrixReplacementCandidates(currentName);
   if (!candidates.length) return;
 
+  const ac = new AbortController();
+
   const select = document.createElement('select');
   select.className = 'matrix-streamer-picker';
   const placeholder = document.createElement('option');
@@ -1211,12 +1213,19 @@ function openMatrixTilePicker(tile) {
   });
 
   select.addEventListener('change', async () => {
+    ac.abort();
     const nextName = select.value;
     if (!nextName) return;
     await replaceMatrixTileStream(tile, nextName);
     renderMatrixOnlineFeed();
-  });
-  select.addEventListener('blur', () => { setTimeout(() => select.remove(), 100); });
+  }, { signal: ac.signal });
+
+  select.addEventListener('blur', () => {
+    setTimeout(() => {
+      ac.abort();
+      select.remove();
+    }, 100);
+  }, { signal: ac.signal });
 
   tile.appendChild(select);
   select.focus();
