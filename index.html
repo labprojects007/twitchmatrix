@@ -251,7 +251,7 @@
       overflow:hidden;
       aspect-ratio: 16 / 9;
     }
-    .matrix-player-holder { position:absolute; inset:0; width:100%; height:100%; }
+    .tile iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
 
     .matrix-tile-button {
       position:absolute;
@@ -425,9 +425,8 @@
       </div>
       <div class="matrix-body" id="matrixBody"></div>
     </div>
-</div>
+  </div>
 
-<script src="https://player.twitch.tv/js/embed/v1.js"></script>
 <script>
 /* ---------- Static tiers (loaded from plain-text file) ---------- */
 const TIERS_FILE = "twitchmatrixlists.txt";
@@ -979,114 +978,62 @@ let retrievePromise = null;
 let matrixRefreshIntervalId = null;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
-const matrixPlayers = new WeakMap();
-const matrixPlayerReady = new WeakMap();
-const matrixTilesByName = new Map();
 const matrixTileRefreshTimers = new WeakMap();
-const MATRIX_PLAYER_QUALITY = '360p';
 function hostName(){ return window.location.hostname; }
 
-function clearMatrixTileRefreshTimer(tile) {
-  if (!tile) return;
-  const timerId = matrixTileRefreshTimers.get(tile);
+function buildPlayerSrc(name) {
+  const params = new URLSearchParams();
+  const host = hostName();
+  params.set('channel', name);
+  if (host) params.set('parent', host);
+  params.set('autoplay', 'true');
+  params.set('muted', 'true');
+  params.set('controls', 'false');
+  params.set('quality', '360p');
+  params.set('ts', Date.now().toString());
+  return `https://player.twitch.tv/?${params.toString()}`;
+}
+
+function clearMatrixTileRefreshTimer(iframe) {
+  if (!iframe) return;
+  const timerId = matrixTileRefreshTimers.get(iframe);
   if (timerId) {
     clearTimeout(timerId);
-    matrixTileRefreshTimers.delete(tile);
+    matrixTileRefreshTimers.delete(iframe);
   }
 }
 
-function pauseMatrixTile(tile) {
-  if (!tile) return;
-  clearMatrixTileRefreshTimer(tile);
-  const holder = tile.querySelector('.matrix-player-holder');
-  const player = holder ? matrixPlayers.get(holder) : null;
-  if (player) {
-    try { player.pause(); } catch (e) {}
-  }
+function disposeMatrixIframe(iframe, { remove = false } = {}) {
+  if (!iframe) return;
+  clearMatrixTileRefreshTimer(iframe);
+  iframe.src = 'about:blank';
+  if (remove) iframe.remove();
 }
 
-function destroyMatrixTile(tile, { remove = false } = {}) {
+function disposeMatrixTile(tile, { remove = false } = {}) {
   if (!tile) return;
-  clearMatrixTileRefreshTimer(tile);
-  const holder = tile.querySelector('.matrix-player-holder');
-  const player = holder ? matrixPlayers.get(holder) : null;
-  if (player) {
-    try { player.pause(); } catch (e) {}
-    matrixPlayers.delete(holder);
-    matrixPlayerReady.delete(holder);
-  }
+  const iframe = tile.querySelector('iframe');
+  disposeMatrixIframe(iframe, { remove: false });
   const xbtn = tile.querySelector('.matrix-blacklist');
   if (xbtn) xbtn.onclick = null;
-  const name = tile.dataset.streamer || '';
-  if (name) matrixTilesByName.delete(name.toLowerCase());
   if (remove) tile.remove();
 }
 
-function destroyAllMatrixTiles({ remove = false } = {}) {
+function disposeAllMatrixIframes({ remove = false } = {}) {
   matrixBody.querySelectorAll('.tile').forEach((tile) => {
-    destroyMatrixTile(tile, { remove });
+    disposeMatrixTile(tile, { remove });
   });
-  if (remove) matrixTilesByName.clear();
+  matrixBody.querySelectorAll('iframe').forEach((iframe) => {
+    disposeMatrixIframe(iframe, { remove });
+  });
 }
 
-function createMatrixPlayerTile(name) {
-  const holder = document.createElement('div');
-  holder.className = 'matrix-player-holder';
-  holder.style.width = '100%';
-  holder.style.height = '100%';
-  holder.dataset.streamer = name;
-
-  const opts = {
-    channel: name,
-    parent: [hostName()].filter(Boolean),
-    muted: true,
-    autoplay: true,
-    controls: false,
-    allowfullscreen: true,
-    playsinline: true,
-    width: '100%',
-    height: '100%',
-  };
-  const player = new Twitch.Player(holder, opts);
-  const readyState = { ready: false, waiters: [] };
-  matrixPlayerReady.set(holder, readyState);
-  player.addEventListener(Twitch.Player.READY, () => {
-    readyState.ready = true;
-    readyState.waiters.splice(0).forEach((resolve) => resolve());
-    try { player.setMuted(true); } catch (e) {}
-    try { player.setQuality(MATRIX_PLAYER_QUALITY); } catch (e) {}
-    try { player.play(); } catch (e) {}
-  });
-  matrixPlayers.set(holder, player);
-  return holder;
-}
-
-async function setMatrixTileStream(tile, nextName) {
-  if (!tile || !nextName) return;
-  const holder = tile.querySelector('.matrix-player-holder');
-  const player = holder ? matrixPlayers.get(holder) : null;
-  const readyState = holder ? matrixPlayerReady.get(holder) : null;
-
-  if (player && typeof player.setChannel === 'function') {
-    if (readyState && !readyState.ready) {
-      await new Promise((resolve) => readyState.waiters.push(resolve));
-    }
-    try { player.pause(); } catch (e) {}
-    try { player.setChannel(nextName); } catch (e) { console.warn("setChannel failed", nextName, e); }
-    try { player.setMuted(true); } catch (e) {}
-    try { player.setQuality(MATRIX_PLAYER_QUALITY); } catch (e) {}
-    try { player.play(); } catch (e) {}
-    if (holder) holder.dataset.streamer = nextName;
-  }
-
-  const prevName = String(tile.dataset.streamer || '').toLowerCase();
-  if (prevName) matrixTilesByName.delete(prevName);
-  matrixTilesByName.set(String(nextName).toLowerCase(), tile);
-  tile.dataset.streamer = nextName;
-  const badge = tile.querySelector('.matrix-streamer-name');
-  if (badge) badge.textContent = nextName;
-  const xbtn = tile.querySelector('.matrix-blacklist');
-  if (xbtn) setMatrixPinStateButtonStyle(xbtn, nextName);
+function createMatrixIframe(name) {
+  const iframe = document.createElement('iframe');
+  iframe.src = buildPlayerSrc(name);
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.loading = 'lazy';
+  return iframe;
 }
 
 
@@ -1193,7 +1140,19 @@ function getMatrixReplacementCandidates(currentName) {
 function resetMatrixForReinit() {
   closeAllMatrixStreamPickers();
   stopMatrixRefreshInterval();
-  matrixBody.querySelectorAll('.tile').forEach((tile)=>pauseMatrixTile(tile));
+  const tiles = Array.from(matrixBody.querySelectorAll('.tile'));
+  for (const tile of tiles) {
+    const badge = tile.querySelector('.matrix-streamer-name');
+    const name = tile.dataset.streamer || badge?.textContent || 'Loading stream';
+    if (badge) {
+      badge.textContent = `${name} (reloading...)`;
+      badge.classList.add('working');
+    }
+    const iframe = tile.querySelector('iframe');
+    disposeMatrixIframe(iframe, { remove: true });
+  }
+  disposeAllMatrixIframes({ remove: true });
+  matrixBody.innerHTML = '';
   if (matrixOnlineFeedEl) matrixOnlineFeedEl.innerHTML = '';
 }
 
@@ -1218,8 +1177,9 @@ async function replaceMatrixTileStream(tile, nextName) {
     nextLive.push(nextName);
   }
 
-  setMatrixTileStream(tile, nextName);
   lastLive = nextLive;
+  resetMatrixForReinit();
+  openMatrix();
 }
 
 function openMatrixTilePicker(tile) {
@@ -1322,6 +1282,8 @@ async function refreshDisplayedMatrixStreams() {
 
 function openMatrix() {
   if (!lastLive.length) return;
+  disposeAllMatrixIframes({ remove: true });
+  matrixBody.innerHTML = '';
   const host = hostName();
   if (!host) {
     const warn = document.createElement('div');
@@ -1330,37 +1292,28 @@ function openMatrix() {
     matrixBody.appendChild(warn);
   }
 
-  const existingTiles = Array.from(matrixBody.querySelectorAll('.tile'));
-  const targetCount = (lastLive || []).length;
-
-  for (let i = existingTiles.length - 1; i >= targetCount; i--) {
-    destroyMatrixTile(existingTiles[i], { remove: true });
-  }
-
-  for (let i = matrixBody.querySelectorAll('.tile').length; i < targetCount; i++) {
-    const name = lastLive[i];
+  // Build tiles once
+  lastLive.forEach(name => {
     const tile = document.createElement('div');
     tile.className = 'tile';
     tile.dataset.streamer = name;
-    const holder = createMatrixPlayerTile(name);
+
+    let iframe = createMatrixIframe(name);
+
     const xbtn = document.createElement('button');
     xbtn.className = 'matrix-tile-button matrix-blacklist';
     setMatrixPinStateButtonStyle(xbtn, name);
     xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
+
     const nameBadge = document.createElement('button');
     nameBadge.type = 'button';
     nameBadge.className = 'matrix-streamer-name';
     nameBadge.textContent = name;
     nameBadge.title = 'Change stream';
     nameBadge.dataset.role = 'matrix-name-picker';
-    tile.append(holder, xbtn, nameBadge);
-    matrixBody.appendChild(tile);
-  }
 
-  Array.from(matrixBody.querySelectorAll('.tile')).forEach((tile, idx) => {
-    const name = lastLive[idx];
-    if (!name) return;
-    setMatrixTileStream(tile, name);
+    tile.append(iframe, xbtn, nameBadge);
+    matrixBody.appendChild(tile);
   });
 
   function optimalCols(n, W, H, gap) {
@@ -1450,8 +1403,9 @@ function closeMatrix() {
   stopMatrixRefreshInterval();
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
-  matrixBody.querySelectorAll('.tile').forEach((tile)=>pauseMatrixTile(tile));
+  disposeAllMatrixIframes({ remove: true });
   matrixBackdrop.style.display = 'none';
+  matrixBody.innerHTML = '';
   if (matrixOnlineFeedEl) matrixOnlineFeedEl.innerHTML = '';
   document.body.style.overflow = '';
   if (matrixResizeHandler) {
@@ -1473,7 +1427,7 @@ matrixBody.addEventListener('click', (e) => {
 matrixBackdrop.addEventListener('click', (e)=>{ if (e.target === matrixBackdrop) closeMatrix(); });
 window.addEventListener('beforeunload', () => {
   stopMatrixRefreshInterval();
-  destroyAllMatrixTiles({ remove: true });
+  disposeAllMatrixIframes({ remove: true });
 });
 
 async function refreshMatrix() {
