@@ -1030,6 +1030,8 @@ function createMatrixIframe(name) {
   const iframe = document.createElement('iframe');
   iframe.src = buildPlayerSrc(name);
   iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
+  iframe.setAttribute('importance', 'low');
   iframe.loading = 'lazy';
   return iframe;
 }
@@ -1139,7 +1141,12 @@ function getMatrixReplacementCandidates(currentName) {
     .filter(name => !displayed.has(String(name).toLowerCase()));
 }
 
-function resetMatrixForReinit() {
+async function resetMatrixForReinit() {
+  // Stage 1: blank all iframes to release GPU video surfaces
+  matrixBody.querySelectorAll('iframe').forEach(f => { f.src = 'about:blank'; });
+  // yield for GPU surface release before full dispose
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // Stage 2: existing dispose logic continues here
   closeAllMatrixStreamPickers();
   stopMatrixRefreshInterval();
   const tiles = Array.from(matrixBody.querySelectorAll('.tile'));
