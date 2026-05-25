@@ -4,6 +4,7 @@
   <meta charset="utf-8"/>
   <title>Twitch Matrix Generator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://player.twitch.tv/js/embed/v1.js"></script>
   <style>
     :root { --accent:#9146FF; --bg:#1d1d1f; --panel:#19191b; --border:#313139; --muted:#bdbdbf; }
     * { box-sizing: border-box; }
@@ -38,7 +39,6 @@
     .step-btn{ height:36px; min-width:36px; padding:0 8px; font-size:15px; font-weight:700; border-radius:9px;
       border:1px solid var(--border); background:#2b2b31; color:#f5f5f7; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
     .step-btn:hover{ filter:brightness(1.08); }
-    .capsule{ display:inline-flex; align-items:center; gap:6px; }
 
     /* Primary buttons */
     .btn{ height:40px; min-width:150px; padding:0 16px; font-size:15px; border:none; border-radius:10px; cursor:pointer;
@@ -47,7 +47,7 @@
     .btn.secondary{ background:#2f2f35; color:#f5f5f7; border:1px solid var(--border); }
     .btn:disabled{ background:#555; cursor:not-allowed; }
 
-    /* Grid: two rows of three columns */
+    /* Grid */
     .grid { display:grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap:18px; margin-top:14px; align-items:start; }
     .tier { display:flex; flex-direction:column; align-items:stretch; }
     .tier h3 { text-align:left; margin:0 0 6px; font-size:14px; color:#d6d6d8; }
@@ -71,9 +71,8 @@
     .streamer.selected .pick-star{ opacity:1; }
 
     .links { display:flex; gap:10px; justify-content:center; }
-    .tiny { font-size:12px; color:#bdbdbf; }
 
-    /* Vertical steppers 3-row × 6-col */
+    /* Vertical steppers */
     .limits-vertical {
       display:grid;
       grid-template-columns: repeat(6, minmax(56px, 1fr));
@@ -93,14 +92,10 @@
       opacity:.85;
     }
     .limits-vertical .vbtn,
-    .limits-vertical .vinput {
-      width:100%;
-    }
-    .limits-vertical .vinput input[type="number"]{
-      width:100%;
-    }
+    .limits-vertical .vinput { width:100%; }
+    .limits-vertical .vinput input[type="number"]{ width:100%; }
 
-    /* --- Preview overlay modal (non-invasive) --- */
+    /* Preview overlay */
     .preview-backdrop {
       position: fixed; inset: 0;
       background: rgba(0,0,0,.64);
@@ -126,13 +121,12 @@
     .preview-close { cursor: pointer; font-size: 20px; line-height: 1; background: none; border: 0; color: #ddd; }
     .preview-close:hover { color: #fff; }
     .preview-body { padding: 12px; overflow: auto; }
-
     .preview-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
     .preview-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--panel); }
     .preview-card img { display: block; width: 100%; height: auto; }
     .preview-meta { padding: 8px; font-size: 13px; color: #e6e6e8; }
 
-    /* --- Matrix overlay (full-screen) --- */
+    /* Matrix overlay */
     .matrix-backdrop {
       position: fixed; inset: 0;
       background: rgba(0,0,0,.9);
@@ -157,7 +151,7 @@
       color:#ddd;
       min-height:42px;
     }
-    .matrix-close { cursor:pointer; font-size:20px; line-height:1; background:none; border:0; color:#ddd; }
+    .matrix-close { cursor:pointer; font-size:20px; line-height:1; background:none; border:0; color:#ddd; margin-left:auto; }
     .matrix-close:hover { color:#fff; }
     .matrix-refresh {
       background:var(--accent); color:#fff; border:0;
@@ -193,12 +187,6 @@
       cursor:grab;
     }
     .matrix-online-feed::-webkit-scrollbar{ display:none; }
-    .matrix-online-feed-track{
-      display:inline-flex;
-      align-items:center;
-      white-space:nowrap;
-      width:max-content;
-    }
     .matrix-online-feed-segment{
       display:inline-flex;
       align-items:center;
@@ -209,12 +197,7 @@
       line-height:1.2;
     }
     .matrix-online-feed-name{
-      border:0;
-      background:none;
-      color:inherit;
-      font:inherit;
-      padding:0;
-      cursor:pointer;
+      border:0; background:none; color:inherit; font:inherit; padding:0; cursor:pointer;
     }
     .matrix-online-feed-name:hover{ text-decoration:underline; }
     .matrix-online-feed-sep{ opacity:.65; }
@@ -230,7 +213,6 @@
       padding-bottom:1px;
       justify-content:center;
     }
-    .matrix-close{ margin-left:auto; }
     .matrix-body {
       flex:1;
       overflow:auto;
@@ -248,78 +230,47 @@
       aspect-ratio: 16 / 9;
     }
     .tile iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+    .tile .twitch-player-div { position:absolute; inset:0; width:100%; height:100%; }
 
     .matrix-tile-button {
       position:absolute;
-      width:22px;
-      height:22px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      width:22px; height:22px;
+      display:flex; align-items:center; justify-content:center;
       background:rgba(0,0,0,.65);
-      border:0;
-      cursor:pointer;
-      z-index:2;
-      font-size:16px;
+      border:0; cursor:pointer; z-index:2; font-size:16px;
     }
     .matrix-tile-button:hover { background:rgba(0,0,0,.8); }
     .matrix-blacklist {
-      top:6px;
-      right:6px;
-      color:#9ca3af;
-      border-radius:4px;
-      font-size:13px;
-      font-weight:700;
-      line-height:1;
+      top:6px; right:6px;
+      color:#9ca3af; border-radius:4px; font-size:13px; font-weight:700; line-height:1;
     }
     .matrix-blacklist.state-pinned { color:#22c55e; }
     .matrix-blacklist.state-blacklisted { color:#ff5555; }
     .matrix-streamer-name{
-      position:absolute;
-      top:6px;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:2;
-      padding:2px 6px;
-      max-width:62%;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-      background:rgba(0,0,0,.72);
-      color:#fff;
-      border-radius:4px;
-      font-size:11px;
-      line-height:1.2;
-      font-weight:600;
-      pointer-events:auto;
-      border:1px solid transparent;
-      cursor:pointer;
+      position:absolute; top:6px; left:50%; transform:translateX(-50%);
+      z-index:2; padding:2px 6px; max-width:62%;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      background:rgba(0,0,0,.72); color:#fff; border-radius:4px;
+      font-size:11px; line-height:1.2; font-weight:600;
+      pointer-events:auto; border:1px solid transparent; cursor:pointer;
     }
     .matrix-streamer-name:hover{ border-color:rgba(255,255,255,.35); }
     .matrix-streamer-picker{
-      position:absolute;
-      top:30px;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:3;
-      max-width:70%;
-      background:rgba(0,0,0,.9);
-      color:#fff;
-      border:1px solid var(--border);
-      border-radius:6px;
-      font-size:11px;
-      padding:2px 4px;
+      position:absolute; top:30px; left:50%; transform:translateX(-50%);
+      z-index:3; max-width:70%;
+      background:rgba(0,0,0,.9); color:#fff;
+      border:1px solid var(--border); border-radius:6px;
+      font-size:11px; padding:2px 4px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Twitch Matrix Generator</h1>
-    <div class="status" id="status">Idle. Grid is ready. Click ‘Retrieve’ to fetch categories and statuses.</div>
+    <div class="status" id="status">Idle. Grid is ready. Click 'Retrieve' to fetch categories and statuses.</div>
     <div class="picked" id="pickedNames"></div>
 
     <div class="controls">
-      <!-- Row 1: Batch & Size -->
       <div class="row">
         <div class="field">Batch
           <div class="stepper">
@@ -344,24 +295,20 @@
         </div>
       </div>
 
-      <!-- Row 2–4: Vertical limits (↑ / inputs / ↓) -->
       <div class="limits-vertical" id="limitsGrid">
         <div class="tier-label">Tier limits (T1–T6)</div>
-        <!-- Up buttons -->
         <button class="step-btn vbtn up" data-target="lim1">▲</button>
         <button class="step-btn vbtn up" data-target="lim2">▲</button>
         <button class="step-btn vbtn up" data-target="lim3">▲</button>
         <button class="step-btn vbtn up" data-target="lim4">▲</button>
         <button class="step-btn vbtn up" data-target="lim5">▲</button>
         <button class="step-btn vbtn up" data-target="lim6">▲</button>
-        <!-- Inputs -->
         <div class="vinput"><input type="number" id="lim1" min="0" max="99" step="1" value="3" aria-label="Tier 1 limit"></div>
         <div class="vinput"><input type="number" id="lim2" min="0" max="99" step="1" value="1" aria-label="Tier 2 limit"></div>
         <div class="vinput"><input type="number" id="lim3" min="0" max="99" step="1" value="1" aria-label="Tier 3 limit"></div>
         <div class="vinput"><input type="number" id="lim4" min="0" max="99" step="1" value="1" aria-label="Tier 4 limit"></div>
         <div class="vinput"><input type="number" id="lim5" min="0" max="99" step="1" value="0" aria-label="Tier 5 limit"></div>
         <div class="vinput"><input type="number" id="lim6" min="0" max="99" step="1" value="0" aria-label="Tier 6 limit"></div>
-        <!-- Down buttons -->
         <button class="step-btn vbtn down" data-target="lim1">▼</button>
         <button class="step-btn vbtn down" data-target="lim2">▼</button>
         <button class="step-btn vbtn down" data-target="lim3">▼</button>
@@ -370,7 +317,6 @@
         <button class="step-btn vbtn down" data-target="lim6">▼</button>
       </div>
 
-      <!-- Row 5: Random toggles -->
       <div class="row" id="randomRow">
         <label><input type="checkbox" id="rand1" checked> Random T1</label>
         <label><input type="checkbox" id="rand2" checked> Random T2</label>
@@ -380,14 +326,12 @@
         <label><input type="checkbox" id="rand6" checked> Random T6</label>
       </div>
 
-      <!-- Row 6: Buttons -->
       <div class="row">
         <button class="btn secondary" id="retrieveBtn" title="Fetch categories and statuses for all names">Retrieve</button>
         <button class="btn primary" id="generateBtn" title="Pick from the cached results only">Generate</button>
         <button class="btn secondary" id="matrixBtn" title="Open embedded matrix (from last Generate)" disabled>Matrix</button>
       </div>
 
-      <!-- Row 7: Links (legacy) -->
       <div class="row links">
         <button class="btn secondary" disabled id="openLink">Open TwitchTheater</button>
         <button class="btn secondary" disabled id="openMulti">Open MultiTwitch</button>
@@ -395,10 +339,8 @@
     </div>
   </div>
 
-  <!-- Grid: T1–T3 on first row, T4–T6 second row (CSS grid handles layout) -->
   <div class="grid" id="gridContainer"></div>
 
-  <!-- Preview overlay (reused for name/tier previews) -->
   <div class="preview-backdrop" id="previewBackdrop">
     <div class="preview-modal" role="dialog" aria-modal="true" aria-label="Preview">
       <div class="preview-header">
@@ -409,7 +351,6 @@
     </div>
   </div>
 
-  <!-- Matrix overlay (full-screen) -->
   <div class="matrix-backdrop" id="matrixBackdrop">
     <div class="matrix-modal">
       <div class="matrix-header">
@@ -424,44 +365,31 @@
   </div>
 
 <script>
-/* ---------- Static tiers (loaded from plain-text file) ---------- */
+/* ---------- Static tiers ---------- */
 const TIERS_FILE = "twitchmatrixlists.txt";
-let tier1 = [];
-let tier2 = [];
-let tier3 = [];
-let tier4 = [];
-
-/* Dynamic (populated on Retrieve) */
-let tier5 = []; // IRL / Travel & Outdoors
-let tier6 = []; // Just Chatting
+let tier1 = [], tier2 = [], tier3 = [], tier4 = [];
+let tier5 = [], tier6 = [];
 let tiers = [tier1, tier2, tier3, tier4, tier5, tier6];
 
 function parseTierText(text){
-  const parsed = { tier1: [], tier2: [], tier3: [], tier4: [] };
+  const parsed = { tier1:[], tier2:[], tier3:[], tier4:[] };
   let currentTier = null;
   for(const rawLine of text.split(/\r?\n/)){
     const line = rawLine.trim();
     if(!line) continue;
     const header = line.match(/^\[(tier[1-4])\]$/);
-    if(header){
-      currentTier = header[1];
-      continue;
-    }
+    if(header){ currentTier = header[1]; continue; }
     if(currentTier){ parsed[currentTier].push(line); }
   }
   return parsed;
 }
 
 async function loadStaticTiers(){
-  const res = await fetch(TIERS_FILE, { cache: "no-store" });
-  if(!res.ok){
-    throw new Error(`Failed to load ${TIERS_FILE} (HTTP ${res.status})`);
-  }
+  const res = await fetch(TIERS_FILE, { cache:"no-store" });
+  if(!res.ok) throw new Error(`Failed to load ${TIERS_FILE} (HTTP ${res.status})`);
   const parsed = parseTierText(await res.text());
-  tier1 = parsed.tier1;
-  tier2 = parsed.tier2;
-  tier3 = parsed.tier3;
-  tier4 = parsed.tier4;
+  tier1 = parsed.tier1; tier2 = parsed.tier2;
+  tier3 = parsed.tier3; tier4 = parsed.tier4;
   tiers = [tier1, tier2, tier3, tier4, tier5, tier6];
 }
 
@@ -472,12 +400,9 @@ const query = `query($login: String!) {
     stream { id title viewersCount game { name } }
   }
 }`;
-
-/* Category top query */
 const categoryTopQuery = `query CategoryTop($name: String!, $limit: Int!) {
   game(name: $name) {
-    id
-    name
+    id name
     streams(first: $limit, options: { sort: VIEWER_COUNT }) {
       edges { node { viewersCount broadcaster { login } } }
     }
@@ -485,6 +410,7 @@ const categoryTopQuery = `query CategoryTop($name: String!, $limit: Int!) {
 }`;
 
 /* ---------- State ---------- */
+const STATIC_HOST = window.location.hostname || window.location.host;
 const statusEl = document.getElementById("status");
 const pickedEl = document.getElementById("pickedNames");
 const matrixTierStatsEl = document.getElementById("matrixTierStats");
@@ -493,10 +419,21 @@ const multiBtn = document.getElementById("openMulti");
 const matrixBtn = document.getElementById("matrixBtn");
 const matrixRefreshBtn = document.getElementById("matrixRefreshBtn");
 let finalURL = "", multiURL = "";
-let lastLive = []; // store last generated live list
-const resultsCache = new Map(); // login -> { isLive, category, title, viewers }
+let lastLive = [];
+const resultsCache = new Map();
 let sessionPins = new Set();
 let sessionBlacklist = new Set();
+
+/* ---------- Persistent player state ----------
+   matrixPlayers: Map<index, Twitch.Player>
+   matrixTiles:   Map<index, tile DOM element>
+   Players are NEVER destroyed after creation.
+   Only setChannel() is called to change streams.
+   Players persist for the full page session.
+----------------------------------------------- */
+const matrixPlayers = new Map();
+const matrixTiles = new Map();
+let matrixInitialized = false;
 
 /* ---------- Persistence ---------- */
 const LS_KEY = "twitchcategories_settings_v2";
@@ -508,8 +445,7 @@ function saveSettings(s){ localStorage.setItem(LS_KEY, JSON.stringify(s)); }
 function readCookie(name){
   const parts = document.cookie ? document.cookie.split("; ") : [];
   for(const part of parts){
-    const i = part.indexOf("=");
-    if(i<0) continue;
+    const i = part.indexOf("="); if(i<0) continue;
     const key = decodeURIComponent(part.slice(0, i));
     if(key !== name) continue;
     return decodeURIComponent(part.slice(i + 1));
@@ -521,12 +457,7 @@ function writeCookie(name, value, days=365){
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
 }
 function loadCookieJSON(name){
-  try{
-    const raw = readCookie(name);
-    return raw ? JSON.parse(raw) : null;
-  }catch{
-    return null;
-  }
+  try{ const raw = readCookie(name); return raw ? JSON.parse(raw) : null; }catch{ return null; }
 }
 function parseNameList(raw){
   if(!raw) return [];
@@ -595,35 +526,27 @@ function renderTierOnlineSnapshot(){
   const snapshot = getTierOnlineSnapshot();
   const hasLiveData = snapshot.some(s => s.online > 0) || resultsCache.size > 0;
   const html = snapshot.map(s => `<span class="tier-pill" title="Tier ${s.tier}"><span>${s.limit}</span> / <span class="online-count">${s.online}</span></span>`).join("");
-  if(hasLiveData){
-    matrixTierStatsEl.innerHTML = html;
-  } else {
-    matrixTierStatsEl.innerHTML = "";
-  }
+  matrixTierStatsEl.innerHTML = hasLiveData ? html : "";
 }
 
 /* ---------- Grid ---------- */
 function buildStreamerRow(name){
   const row=document.createElement("div"); row.className="streamer";
   const star=document.createElement("span"); star.className="pick-star"; star.textContent="*";
-
   const pinBtn=document.createElement("button"); pinBtn.className="pin-btn"; pinBtn.innerText="✔"; pinBtn.title="Pin (prefer)"; pinBtn.dataset.name=name;
   pinBtn.onclick=()=>{const n=name;
     if(sessionPins.has(n)){ sessionPins.delete(n); pinBtn.classList.remove("active"); }
     else { sessionPins.add(n); pinBtn.classList.add("active"); sessionBlacklist.delete(n); blackBtn.classList.remove("active"); }
     savePinBlacklistCookies();
   };
-
   const blackBtn=document.createElement("button"); blackBtn.className="black-btn"; blackBtn.innerText="✖"; blackBtn.title="Blacklist (exclude)"; blackBtn.dataset.name=name;
   blackBtn.onclick=()=>{const n=name;
     if(sessionBlacklist.has(n)){ sessionBlacklist.delete(n); blackBtn.classList.remove("active"); }
     else { sessionBlacklist.add(n); blackBtn.classList.add("active"); sessionPins.delete(n); pinBtn.classList.remove("active"); }
     savePinBlacklistCookies();
   };
-
   if(sessionPins.has(name)) pinBtn.classList.add("active");
   if(sessionBlacklist.has(name)) blackBtn.classList.add("active");
-
   const span=document.createElement("span"); span.id=`status-${name}`; span.textContent=name; span.className="unknown";
   row.append(star, pinBtn, blackBtn, span);
   return row;
@@ -670,8 +593,7 @@ function markError(names, note="(error)"){
   }
 }
 function paintLabel(name, r){
-  const el=document.getElementById(`status-${name}`);
-  if(!el) return;
+  const el=document.getElementById(`status-${name}`); if(!el) return;
   el.classList.remove("working","online","offline","unknown");
   if(!r){ el.classList.add("unknown"); el.textContent=name; return; }
   if(r.isLive){ el.classList.add("online"); el.textContent = r.category ? `${name} (${abbreviateCategory(r.category)})` : name; }
@@ -693,7 +615,7 @@ async function fetchBatch(names){
     headers:{ "Client-ID":clientId, "Content-Type":"application/json" },
     body: JSON.stringify(ops)
   });
-  if(!res.ok){ throw new Error("HTTP "+res.status); }
+  if(!res.ok) throw new Error("HTTP "+res.status);
   const data = await res.json();
   return data.map(d=>{
     const stream = d?.data?.user?.stream;
@@ -705,8 +627,6 @@ async function fetchBatch(names){
     };
   });
 }
-
-/* Category helpers */
 async function gqlSingle(op){
   const res = await fetch("https://gql.twitch.tv/gql", {
     method:"POST", headers:{ "Client-ID":clientId, "Content-Type":"application/json" },
@@ -727,7 +647,6 @@ async function fetchCategoryTop(catName, limit){
   }
   return [];
 }
-
 function pruneResultsCacheToVisibleNames() {
   const visibleNames = new Set(tiers.flat());
   for (const name of resultsCache.keys()) {
@@ -736,75 +655,56 @@ function pruneResultsCacheToVisibleNames() {
 }
 
 /* ---------- Phase 1: Retrieve ---------- */
-function setRetrievePending(isPending){
-  document.body.classList.toggle("retrieve-pending", !!isPending);
-}
+let retrievePromise = null;
+function setRetrievePending(isPending){ document.body.classList.toggle("retrieve-pending", !!isPending); }
 
 async function retrieveAll(){
   if (retrievePromise) return retrievePromise;
   retrievePromise = (async () => {
-  setRetrievePending(true);
-  try{
-    statusEl.textContent = "Retrieving categories (top 20) and statuses…";
-    pickedEl.textContent = "";
-
-    // 1) Get category lists in parallel
-    let [irl, jc] = await Promise.all([ fetchCategoryTop("IRL", 20), fetchCategoryTop("Just Chatting", 20) ]);
-
-    // 2) De-dup against T1–T4 and between T5/T6
-    const existing = new Set([ ...tier1, ...tier2, ...tier3, ...tier4 ]);
-    irl = irl.filter(n => !existing.has(n));
-    irl.forEach(n => existing.add(n));
-    jc  = jc.filter(n => !existing.has(n));
-
-    // Replace Tier 5/6
-    replaceTier(4, irl);
-    replaceTier(5, jc);
-    pruneResultsCacheToVisibleNames();
-
-    // 3) Re-apply pins/blacklist only if name is still visible
-    const prevPins=new Set(sessionPins), prevBlack=new Set(sessionBlacklist);
-    sessionPins = new Set(); sessionBlacklist = new Set();
-    const visible = new Set(tiers.flat());
-    prevPins.forEach(n=>{ if(visible.has(n)) sessionPins.add(n); });
-    prevBlack.forEach(n=>{ if(visible.has(n)) sessionBlacklist.add(n); });
-    savePinBlacklistCookies();
-    syncPinBlacklistButtons();
-
-    // 4) Batched status checks for ALL visible names
-    const allNames=[...new Set(tiers.flat())];
-    const batchSize=getBatchSize();
-    let processed=0;
-    for(let i=0; i<allNames.length; ){
-      const chunk=allNames.slice(i, i+batchSize); i+=batchSize;
-      setWorking(chunk, true);
-      try{
-        const fetched = await fetchBatch(chunk);
-        fetched.forEach((r, idx)=>{
-          const name = chunk[idx];
-          resultsCache.set(name, r);
-          paintLabel(name, r);
-        });
-        processed += chunk.length;
-        statusEl.textContent = `Retrieved ${processed}/${allNames.length}…`;
-        renderTierOnlineSnapshot();
-      }catch(e){
-        console.error("Batch error", e);
-        markError(chunk);
-      }finally{
-        setWorking(chunk, false);
+    setRetrievePending(true);
+    try{
+      statusEl.textContent = "Retrieving categories (top 20) and statuses…";
+      pickedEl.textContent = "";
+      let [irl, jc] = await Promise.all([ fetchCategoryTop("IRL", 20), fetchCategoryTop("Just Chatting", 20) ]);
+      const existing = new Set([ ...tier1, ...tier2, ...tier3, ...tier4 ]);
+      irl = irl.filter(n => !existing.has(n));
+      irl.forEach(n => existing.add(n));
+      jc = jc.filter(n => !existing.has(n));
+      replaceTier(4, irl);
+      replaceTier(5, jc);
+      pruneResultsCacheToVisibleNames();
+      const prevPins=new Set(sessionPins), prevBlack=new Set(sessionBlacklist);
+      sessionPins = new Set(); sessionBlacklist = new Set();
+      const visible = new Set(tiers.flat());
+      prevPins.forEach(n=>{ if(visible.has(n)) sessionPins.add(n); });
+      prevBlack.forEach(n=>{ if(visible.has(n)) sessionBlacklist.add(n); });
+      savePinBlacklistCookies();
+      syncPinBlacklistButtons();
+      const allNames=[...new Set(tiers.flat())];
+      const batchSize=getBatchSize();
+      let processed=0;
+      for(let i=0; i<allNames.length; ){
+        const chunk=allNames.slice(i, i+batchSize); i+=batchSize;
+        setWorking(chunk, true);
+        try{
+          const fetched = await fetchBatch(chunk);
+          fetched.forEach((r, idx)=>{ const name=chunk[idx]; resultsCache.set(name, r); paintLabel(name, r); });
+          processed += chunk.length;
+          statusEl.textContent = `Retrieved ${processed}/${allNames.length}…`;
+          renderTierOnlineSnapshot();
+        }catch(e){ console.error("Batch error", e); markError(chunk); }
+        finally{ setWorking(chunk, false); }
       }
+      statusEl.textContent = "Retrieve complete. Click Generate to pick from cache.";
+      renderTierOnlineSnapshot();
+      renderMatrixOnlineFeed();
+    }catch(e){
+      console.error(e);
+      statusEl.textContent = "Retrieve failed (categories or status). See console for details.";
+    } finally {
+      setRetrievePending(false);
+      retrievePromise = null;
     }
-    statusEl.textContent = "Retrieve complete. Click Generate to pick from cache.";
-    renderTierOnlineSnapshot();
-    renderMatrixOnlineFeed();
-  }catch(e){
-    console.error(e);
-    statusEl.textContent = "Retrieve failed (categories or status). See console for details.";
-  } finally {
-    setRetrievePending(false);
-    retrievePromise = null;
-  }
   })();
   return retrievePromise;
 }
@@ -820,15 +720,9 @@ function generateFromCache(){
   const tierRandomize = readRandoms();
   const pinned = new Set(sessionPins);
   const blacklist = new Set(sessionBlacklist);
-
-  if(!resultsCache.size){ statusEl.textContent="No cached statuses. Click ‘Retrieve’ first."; openBtn.disabled=true; multiBtn.disabled=true; matrixBtn.disabled=true; lastLive=[]; return; }
-
-  // Build ordered lists per tier, filtered & randomized
+  if(!resultsCache.size){ statusEl.textContent="No cached statuses. Click 'Retrieve' first."; openBtn.disabled=true; multiBtn.disabled=true; matrixBtn.disabled=true; lastLive=[]; return; }
   const perTier=[0,1,2,3,4,5].map(i => orderedTierNames(i, pinned, blacklist, tierRandomize));
-
   const live=[]; const usedTiers=[]; const counts=[0,0,0,0,0,0];
-
-  // Pass 1: respect per-tier caps
   for(let t=0; t<perTier.length && live.length<size; t++){
     const cap=tierLimits[t]; if(cap<=0) continue;
     for(const name of perTier[t]){
@@ -837,7 +731,6 @@ function generateFromCache(){
       if(r?.isLive){ live.push(name); counts[t]++; setSelected(name,true); if(!usedTiers.includes(`Tier ${t+1}`)) usedTiers.push(`Tier ${t+1}`); }
     }
   }
-  // Pass 2: backfill ignoring caps
   if(live.length<size){
     for(let t=0; t<perTier.length && live.length<size; t++){
       for(const name of perTier[t]){
@@ -847,7 +740,6 @@ function generateFromCache(){
       }
     }
   }
-
   if(live.length){
     lastLive = live.slice();
     finalURL=`https://twitchtheater.tv/${live.join("/")}`;
@@ -877,8 +769,7 @@ function attachStepperHandlers(){
     btn.addEventListener("click", ()=>{
       const id=btn.getAttribute("data-target");
       const input=document.getElementById(id); if(!input) return;
-      const dir = btn.classList.contains("up") ? +1 : -1;
-      adjust(input, dir);
+      adjust(input, btn.classList.contains("up") ? +1 : -1);
     });
   });
   document.querySelectorAll('input[type="number"]').forEach(inp=>{
@@ -921,7 +812,7 @@ function initPersistence(){
   [1,2,3,4,5,6].forEach(i=>document.getElementById("rand"+i).addEventListener("change", persist));
 }
 
-/* ---------- Preview Overlay (modal) ---------- */
+/* ---------- Preview Overlay ---------- */
 const previewBackdrop = document.getElementById('previewBackdrop');
 function openPreview({ title, nodes }) {
   previewBackdrop.querySelector('.preview-title').textContent = title || '';
@@ -940,32 +831,23 @@ previewBackdrop.addEventListener('click', (e) => { if (e.target === previewBackd
 previewBackdrop.querySelector('.preview-close').addEventListener('click', closePreview);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (matrixBackdrop.style.display==='flex') closeMatrix(); else closePreview(); } });
 
-/* Single-card builder (no extra fetch) */
 function makePreviewCard(name) {
   const r = resultsCache.get(name) || {};
   const card = document.createElement('div');
   card.className = 'preview-card';
-
   const img = document.createElement('img');
   img.src = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${name}-640x360.jpg?timestamp=${Date.now()}`;
-
   const meta = document.createElement('div');
   meta.className = 'preview-meta';
   const cat = r.category || '';
   const viewers = (typeof r.viewers === 'number') ? ` — ${r.viewers.toLocaleString()} watching` : '';
   const title = r.title || '(no title)';
-
-  meta.innerHTML = `
-    <div><strong>${name}</strong></div>
-    <div>${cat}${viewers}</div>
-    <div style="color:#bdbdbf">${title}</div>
-  `;
-
+  meta.innerHTML = `<div><strong>${name}</strong></div><div>${cat}${viewers}</div><div style="color:#bdbdbf">${title}</div>`;
   card.append(img, meta);
   return card;
 }
 
-/* ---------- Matrix Overlay (embedded players) ---------- */
+/* ---------- Matrix Overlay — Twitch.Player persistent ---------- */
 const matrixBackdrop = document.getElementById('matrixBackdrop');
 const matrixBody = document.getElementById('matrixBody');
 const matrixRefreshCountdownEl = document.getElementById('matrixRefreshCountdown');
@@ -974,108 +856,69 @@ let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
-const matrixPlayerPool = [];
-let twitchEmbedReadyPromise = null;
-const MATRIX_PREFERRED_QUALITY = '160p30';
-function hostName(){ return window.location.hostname; }
 
-function ensureTwitchEmbedScript() {
-  if (window.Twitch?.Embed) return Promise.resolve();
-  if (twitchEmbedReadyPromise) return twitchEmbedReadyPromise;
-  twitchEmbedReadyPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-twitch-embed="true"]');
-    if (existing) {
-      if (window.Twitch?.Embed) {
-        resolve();
-        return;
-      }
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error('Failed to load Twitch embed script')), { once: true });
-      return;
+/* --- Player helpers --- */
+
+function setTwitchPlayerChannel(index, channelName) {
+  /* The ONLY correct way to change a stream without destroying the player.
+     Twitch.Player.setChannel() transitions the existing decoder context
+     to the new channel — zero GPU allocation, zero memory leak. */
+  const player = matrixPlayers.get(index);
+  if (!player) return;
+  if (typeof player.setChannel === 'function') {
+    player.setChannel(channelName);
+  } else {
+    console.warn(`setChannel not available on player ${index}`);
+  }
+}
+
+function updateTileBadge(index, channelName) {
+  const tile = matrixTiles.get(index);
+  if (!tile) return;
+  tile.dataset.streamer = channelName;
+  const badge = tile.querySelector('.matrix-streamer-name');
+  if (badge) badge.textContent = channelName;
+  const xbtn = tile.querySelector('.matrix-blacklist');
+  if (xbtn) setMatrixPinStateButtonStyle(xbtn, channelName);
+}
+
+function pauseAllMatrixPlayers() {
+  matrixPlayers.forEach((player) => {
+    if (player && typeof player.pause === 'function') {
+      try { player.pause(); } catch(e) { /* ignore */ }
     }
-    const script = document.createElement('script');
-    script.src = 'https://embed.twitch.tv/embed/v1.js';
-    script.async = true;
-    script.dataset.twitchEmbed = 'true';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Twitch embed script'));
-    document.head.appendChild(script);
-  });
-  return twitchEmbedReadyPromise;
-}
-
-function createMatrixIframe() {
-  const mount = document.createElement('div');
-  mount.className = 'matrix-player-mount';
-  return mount;
-}
-
-function setMatrixIframeChannel(slot, name) {
-  if (!slot || !name) return;
-  if (slot.player?.setChannel) {
-    slot.player.setChannel(name);
-    return;
-  }
-  slot.pendingChannel = name;
-}
-
-function applyPreferredQuality(slot) {
-  if (!slot?.player?.setQuality) return;
-  try {
-    slot.player.setQuality(MATRIX_PREFERRED_QUALITY);
-  } catch (err) {
-    console.debug('Unable to set preferred Twitch quality', err);
-  }
-}
-
-function ensureMatrixPlayerPool(size) {
-  const target = Math.max(0, size);
-  while (matrixPlayerPool.length < target) {
-    const mount = createMatrixIframe();
-    matrixPlayerPool.push({ mount, channel: '', embed: null, player: null, pendingChannel: '' });
-  }
-}
-
-function trimMatrixPlayerPool(size) {
-  const target = Math.max(0, size);
-  if (target >= matrixPlayerPool.length) return;
-  const removed = matrixPlayerPool.splice(target);
-  removed.forEach((slot) => {
-    slot.player = null;
-    slot.embed = null;
-    slot.pendingChannel = '';
-    slot.mount?.remove();
   });
 }
 
+function playAllMatrixPlayers() {
+  matrixPlayers.forEach((player) => {
+    if (player && typeof player.play === 'function') {
+      try { player.play(); } catch(e) { /* ignore */ }
+    }
+  });
+}
 
+/* --- Interval --- */
 function getRefreshMinutes() {
   const n = parseInt(document.getElementById("inputRefresh")?.value || "0", 10);
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
-
 function stopMatrixRefreshInterval() {
   if (!matrixRefreshIntervalId) return;
   clearInterval(matrixRefreshIntervalId);
   matrixRefreshIntervalId = null;
 }
-
 function formatRemainingSeconds(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
-
 function renderMatrixRefreshCountdown() {
   if (!matrixRefreshCountdownEl) return;
   const minutes = getRefreshMinutes();
-  if (minutes <= 0) {
-    matrixRefreshCountdownEl.textContent = '';
-    return;
-  }
+  if (minutes <= 0) { matrixRefreshCountdownEl.textContent = ''; return; }
   matrixRefreshCountdownEl.textContent = formatRemainingSeconds(matrixCountdownSeconds);
 }
-
 function startMatrixRefreshInterval() {
   stopMatrixRefreshInterval();
   const minutes = getRefreshMinutes();
@@ -1097,12 +940,16 @@ function startMatrixRefreshInterval() {
   }, 10000);
 }
 
+/* --- Displayed streams --- */
 function getDisplayedMatrixStreams() {
-  return Array.from(matrixBody.querySelectorAll('.tile[data-streamer]'))
-    .map(tile => tile.dataset.streamer)
-    .filter(Boolean);
+  const result = [];
+  matrixTiles.forEach((tile) => {
+    if (tile.dataset.streamer) result.push(tile.dataset.streamer);
+  });
+  return result;
 }
 
+/* --- Picker --- */
 function closeAllMatrixStreamPickers() {
   matrixBody.querySelectorAll('.matrix-streamer-picker').forEach(el => el.remove());
 }
@@ -1111,33 +958,20 @@ function setMatrixPinStateButtonStyle(btn, name) {
   if (!btn || !name) return;
   btn.classList.remove('state-pinned', 'state-blacklisted');
   if (sessionPins.has(name)) {
-    btn.classList.add('state-pinned');
-    btn.textContent = '✓';
-    btn.title = 'Pinned (click to clear)';
-    return;
+    btn.classList.add('state-pinned'); btn.textContent = '✓'; btn.title = 'Pinned (click to clear)'; return;
   }
   if (sessionBlacklist.has(name)) {
-    btn.classList.add('state-blacklisted');
-    btn.textContent = '✖';
-    btn.title = 'Blacklisted (click to pin)';
-    return;
+    btn.classList.add('state-blacklisted'); btn.textContent = '✖'; btn.title = 'Blacklisted (click to pin)'; return;
   }
-  btn.textContent = '';
-  btn.title = 'Neutral (click to blacklist)';
+  btn.textContent = ''; btn.title = 'Neutral (click to blacklist)';
 }
 
 function cycleMatrixTilePinState(tile, btn) {
   if (!tile || !btn) return;
-  const name = tile.dataset.streamer;
-  if (!name) return;
-  if (!sessionPins.has(name) && !sessionBlacklist.has(name)) {
-    sessionBlacklist.add(name);
-  } else if (sessionBlacklist.has(name)) {
-    sessionBlacklist.delete(name);
-    sessionPins.add(name);
-  } else {
-    sessionPins.delete(name);
-  }
+  const name = tile.dataset.streamer; if (!name) return;
+  if (!sessionPins.has(name) && !sessionBlacklist.has(name)) { sessionBlacklist.add(name); }
+  else if (sessionBlacklist.has(name)) { sessionBlacklist.delete(name); sessionPins.add(name); }
+  else { sessionPins.delete(name); }
   sessionPins.forEach(n=>{ if(sessionBlacklist.has(n)) sessionBlacklist.delete(n); });
   savePinBlacklistCookies();
   syncPinBlacklistButtons();
@@ -1153,39 +987,33 @@ function getMatrixReplacementCandidates(currentName) {
     .filter(name => !displayed.has(String(name).toLowerCase()));
 }
 
-async function replaceMatrixTileStream(tile, nextName) {
+/* --- Single stream replacement — setChannel only, no teardown --- */
+function replaceMatrixTileStream(tile, nextName) {
   if (!tile || !nextName) return;
   const prevName = tile.dataset.streamer || '';
   if (prevName && String(prevName).toLowerCase() === String(nextName).toLowerCase()) return;
 
-  const existingOrder = getDisplayedMatrixStreams();
-  const replacementOrder = existingOrder.length ? existingOrder.slice() : (lastLive || []).slice();
-  let replaced = false;
-  const prevLc = String(prevName).toLowerCase();
-  const nextLc = String(nextName).toLowerCase();
-  const nextLive = replacementOrder.map((name) => {
-    if (!replaced && String(name).toLowerCase() === prevLc) {
-      replaced = true;
-      return nextName;
-    }
-    return name;
-  });
-  if (!replaced && !nextLive.some(name => String(name).toLowerCase() === nextLc)) {
-    nextLive.push(nextName);
-  }
+  /* Find the index for this tile */
+  let tileIndex = -1;
+  matrixTiles.forEach((t, idx) => { if (t === tile) tileIndex = idx; });
+  if (tileIndex === -1) return;
 
-  lastLive = nextLive;
-  const idx = Number(tile.dataset.slotIndex);
-  if (!Number.isNaN(idx)) {
-    const slot = matrixPlayerPool[idx];
-    if (slot) {
-      setMatrixIframeChannel(slot, nextName);
-      slot.channel = nextName;
-    }
-  }
-  tile.dataset.streamer = nextName;
-  const badge = tile.querySelector('.matrix-streamer-name');
-  if (badge) badge.textContent = nextName;
+  /* Update lastLive */
+  lastLive = lastLive.map(n =>
+    String(n).toLowerCase() === String(prevName).toLowerCase() ? nextName : n
+  );
+
+  /* Change channel on existing player — zero memory cost */
+  setTwitchPlayerChannel(tileIndex, nextName);
+
+  /* Update tile metadata */
+  updateTileBadge(tileIndex, nextName);
+
+  /* Sync xbtn onclick for new name */
+  const xbtn = tile.querySelector('.matrix-blacklist');
+  if (xbtn) xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
+
+  renderMatrixOnlineFeed();
 }
 
 function openMatrixTilePicker(tile) {
@@ -1193,46 +1021,34 @@ function openMatrixTilePicker(tile) {
   const existing = tile.querySelector('.matrix-streamer-picker');
   if (existing) { existing.remove(); return; }
   closeAllMatrixStreamPickers();
-
   const currentName = tile.dataset.streamer || '';
   const candidates = getMatrixReplacementCandidates(currentName);
   if (!candidates.length) return;
 
   const ac = new AbortController();
-
   const select = document.createElement('select');
   select.className = 'matrix-streamer-picker';
   const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = 'Select online stream';
-  placeholder.selected = true;
+  placeholder.value = ''; placeholder.textContent = 'Select online stream'; placeholder.selected = true;
   select.appendChild(placeholder);
   candidates.forEach(name => {
     const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
+    opt.value = name; opt.textContent = name; select.appendChild(opt);
   });
-
-  select.addEventListener('change', async () => {
+  select.addEventListener('change', () => {
     ac.abort();
-    const nextName = select.value;
-    if (!nextName) return;
-    await replaceMatrixTileStream(tile, nextName);
-    renderMatrixOnlineFeed();
+    const nextName = select.value; if (!nextName) return;
+    select.remove();
+    replaceMatrixTileStream(tile, nextName);
   }, { signal: ac.signal });
-
   select.addEventListener('blur', () => {
-    setTimeout(() => {
-      ac.abort();
-      select.remove();
-    }, 100);
+    setTimeout(() => { ac.abort(); select.remove(); }, 100);
   }, { signal: ac.signal });
-
   tile.appendChild(select);
   select.focus();
 }
 
+/* --- Feed --- */
 function getOnlineFeedNames() {
   const hidden = new Set(lastLive || []);
   const names = [];
@@ -1246,36 +1062,26 @@ function getOnlineFeedNames() {
   }
   return names;
 }
-
 function renderMatrixOnlineFeed() {
   if (!matrixOnlineFeedEl) return;
   const feedItems = getOnlineFeedNames();
-  if (!feedItems.length) {
-    matrixOnlineFeedEl.innerHTML = '';
-    return;
-  }
+  if (!feedItems.length) { matrixOnlineFeedEl.innerHTML = ''; return; }
   const markup = feedItems
-    .map((item, idx) => `${idx
-      ? '<span class="matrix-online-feed-sep">•</span>'
-      : ''}<button type="button" class="matrix-online-feed-name"
-      data-name="${item.name}">${item.label}</button>`)
+    .map((item, idx) => `${idx ? '<span class="matrix-online-feed-sep">•</span>' : ''}<button type="button" class="matrix-online-feed-name" data-name="${item.name}">${item.label}</button>`)
     .join('');
-  matrixOnlineFeedEl.innerHTML = `
-    <span class="matrix-online-feed-segment">${markup}</span>
-  `;
+  matrixOnlineFeedEl.innerHTML = `<span class="matrix-online-feed-segment">${markup}</span>`;
 }
-
-
 matrixOnlineFeedEl?.addEventListener("click", async (e) => {
   e.preventDefault();
+  if (retrievePromise) return;
   await retrieveAll();
 });
 
+/* --- Refresh displayed streams (timer path) --- */
 async function refreshDisplayedMatrixStreams() {
   if (matrixBackdrop.style.display !== 'flex') return;
   const displayed = getDisplayedMatrixStreams();
   if (!displayed.length) return;
-
   const fetched = await fetchBatch(displayed);
   let anyOffline = false;
   fetched.forEach((r, idx) => {
@@ -1284,178 +1090,190 @@ async function refreshDisplayedMatrixStreams() {
     paintLabel(name, r);
     if (!r?.isLive) anyOffline = true;
   });
-
   if (anyOffline) {
     await refreshMatrix();
-    return;
   }
 }
 
+/* --- Layout --- */
+function optimalCols(n, W, H, gap) {
+  let best = {cols: 1, area: -1, overflow: Infinity};
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const totalGapW = gap * (cols - 1);
+    const totalGapH = gap * (rows - 1);
+    const tileW = Math.max(0, (W - totalGapW) / cols);
+    const tileH = tileW * 9 / 16;
+    const gridH = rows * tileH + totalGapH;
+    const area = tileW * tileH;
+    const overflow = Math.max(0, gridH - H);
+    const fits = overflow <= 0;
+    if (fits && (area > best.area || (area === best.area && cols > best.cols))) {
+      best = {cols, area, overflow};
+    }
+  }
+  if (best.area >= 0) return best.cols;
+  let minOverflow = Infinity, bestCols = 1, bestArea = -1;
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const totalGapW = gap * (cols - 1);
+    const totalGapH = gap * (rows - 1);
+    const tileW = Math.max(0, (W - totalGapW) / cols);
+    const tileH = tileW * 9 / 16;
+    const gridH = rows * tileH + totalGapH;
+    const overflow = Math.max(0, gridH - H);
+    const area = tileW * tileH;
+    if (overflow < minOverflow || (overflow === minOverflow && area > bestArea)) {
+      minOverflow = overflow; bestArea = area; bestCols = cols;
+    }
+  }
+  return bestCols;
+}
 
+function applyMatrixLayout() {
+  const n = Math.max(1, lastLive.length);
+  const tiles = matrixBody.children;
+  Array.from(tiles).forEach(t => { t.style.gridColumn = ''; t.style.gridRow = ''; });
+  matrixBody.style.gridTemplateColumns = '';
+  matrixBody.style.gridTemplateRows = '';
+  if (n === 5) {
+    matrixBody.style.gridTemplateColumns = 'repeat(6, minmax(0, 1fr))';
+    if (tiles[0]) tiles[0].style.gridColumn = 'span 3';
+    if (tiles[1]) tiles[1].style.gridColumn = 'span 3';
+    if (tiles[2]) tiles[2].style.gridColumn = 'span 2';
+    if (tiles[3]) tiles[3].style.gridColumn = 'span 2';
+    if (tiles[4]) tiles[4].style.gridColumn = 'span 2';
+    return;
+  }
+  const gap = parseFloat(getComputedStyle(matrixBody).gap || "8");
+  const rect = matrixBody.getBoundingClientRect();
+  const cols = optimalCols(n, rect.width, rect.height, gap || 8);
+  matrixBody.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+}
 
+/* --- openMatrix ---
+   First call: creates Twitch.Player instances and DOM tiles.
+   Subsequent calls (refresh): updates existing players via setChannel.
+   Players are NEVER destroyed. --------------------------------------- */
 function openMatrix() {
   if (!lastLive.length) return;
-  matrixBody.innerHTML = '';
-  ensureMatrixPlayerPool(lastLive.length);
-  const host = hostName();
-  if (!host) {
-    const warn = document.createElement('div');
-    warn.style.color = '#f55'; warn.style.fontSize='14px'; warn.style.padding='8px';
-    warn.textContent = 'Cannot embed Twitch on file://. Serve this page via HTTP(S).';
-    matrixBody.appendChild(warn);
+
+  if (!STATIC_HOST) {
+    console.error('No hostname — cannot embed Twitch');
+    return;
   }
 
-  // Build tiles once
-  lastLive.forEach((name, idx) => {
-    const tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.dataset.streamer = name;
+  matrixBackdrop.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 
-    const slot = matrixPlayerPool[idx];
-    let mount = slot.mount;
-    if (!slot.embed) {
-      ensureTwitchEmbedScript().then(() => {
-        const host = hostName();
-        if (!host || !window.Twitch?.Embed) return;
-        const embed = new Twitch.Embed(mount, {
-          width: '100%',
-          height: '100%',
-          channel: name,
-          layout: 'video',
-          parent: [host],
-          autoplay: true,
-          muted: true
-        });
-        slot.embed = embed;
-        embed.addEventListener(Twitch.Embed.READY, () => {
-          const player = embed.getPlayer();
-          slot.player = player;
-          applyPreferredQuality(slot);
-          const target = slot.pendingChannel || slot.channel || name;
-          if (target && target !== name && player?.setChannel) player.setChannel(target);
-          slot.pendingChannel = '';
-        });
-      }).catch((err) => {
-        console.warn('Unable to initialize Twitch embed player', err);
+  if (!matrixInitialized) {
+    /* First open — build tiles and create players */
+    matrixBody.innerHTML = '';
+    matrixPlayers.clear();
+    matrixTiles.clear();
+
+    lastLive.forEach((name, index) => {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.dataset.streamer = name;
+
+      /* Twitch.Player needs a div with a unique id to inject into */
+      const playerDiv = document.createElement('div');
+      playerDiv.id = `twitch-player-${index}`;
+      playerDiv.className = 'twitch-player-div';
+      tile.appendChild(playerDiv);
+
+      const xbtn = document.createElement('button');
+      xbtn.className = 'matrix-tile-button matrix-blacklist';
+      setMatrixPinStateButtonStyle(xbtn, name);
+      xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
+
+      const nameBadge = document.createElement('button');
+      nameBadge.type = 'button';
+      nameBadge.className = 'matrix-streamer-name';
+      nameBadge.textContent = name;
+      nameBadge.title = 'Change stream';
+      nameBadge.dataset.role = 'matrix-name-picker';
+
+      tile.append(xbtn, nameBadge);
+      matrixBody.appendChild(tile);
+      matrixTiles.set(index, tile);
+
+      /* Create the persistent Twitch.Player instance */
+      const player = new Twitch.Player(`twitch-player-${index}`, {
+        channel: name,
+        width: '100%',
+        height: '100%',
+        autoplay: true,
+        muted: true,
+        controls: false,
+        quality: '160p',
+        parent: [STATIC_HOST]
       });
-    } else if (slot.channel) {
-      setMatrixIframeChannel(slot, name);
-    }
-    slot.channel = name;
+      matrixPlayers.set(index, player);
+    });
 
-    const xbtn = document.createElement('button');
-    xbtn.className = 'matrix-tile-button matrix-blacklist';
-    setMatrixPinStateButtonStyle(xbtn, name);
-    xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
+    matrixInitialized = true;
 
-    const nameBadge = document.createElement('button');
-    nameBadge.type = 'button';
-    nameBadge.className = 'matrix-streamer-name';
-    nameBadge.textContent = name;
-    nameBadge.title = 'Change stream';
-    nameBadge.dataset.role = 'matrix-name-picker';
-    tile.dataset.slotIndex = String(idx);
-
-    tile.append(mount, xbtn, nameBadge);
-    matrixBody.appendChild(tile);
-  });
-
-  function optimalCols(n, W, H, gap) {
-    // Try all column counts 1..n; pick best that fits vertically and maximizes tile area
-    let best = {cols: 1, area: -1, overflow: Infinity};
-    for (let cols = 1; cols <= n; cols++) {
-      const rows = Math.ceil(n / cols);
-      const totalGapW = gap * (cols - 1);
-      const totalGapH = gap * (rows - 1);
-      const tileW = Math.max(0, (W - totalGapW) / cols);
-      const tileH = tileW * 9 / 16; // 16:9 tiles
-      const gridH = rows * tileH + totalGapH;
-      const area = tileW * tileH;
-      const overflow = Math.max(0, gridH - H);
-      // Prefer fits (overflow == 0) with max area; otherwise prefer smallest overflow then max area
-      const fits = overflow <= 0;
-      if (fits) {
-        if (area > best.area || (area === best.area && cols > best.cols)) {
-          best = {cols, area, overflow};
+  } else {
+    /* Subsequent opens — update existing players via setChannel only.
+       No DOM changes, no player destruction, no GPU allocation. */
+    lastLive.forEach((name, index) => {
+      const currentName = matrixTiles.get(index)?.dataset?.streamer || '';
+      if (String(currentName).toLowerCase() !== String(name).toLowerCase()) {
+        setTwitchPlayerChannel(index, name);
+        updateTileBadge(index, name);
+        const tile = matrixTiles.get(index);
+        if (tile) {
+          const xbtn = tile.querySelector('.matrix-blacklist');
+          if (xbtn) {
+            setMatrixPinStateButtonStyle(xbtn, name);
+            xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
+          }
         }
       }
-    }
-    if (best.area >= 0) return best.cols;
-    // If no fit found (very small H), choose columns that minimize overflow
-    let minOverflow = Infinity, bestCols = 1, bestArea = -1;
-    for (let cols = 1; cols <= n; cols++) {
-      const rows = Math.ceil(n / cols);
-      const totalGapW = gap * (cols - 1);
-      const totalGapH = gap * (rows - 1);
-      const tileW = Math.max(0, (W - totalGapW) / cols);
-      const tileH = tileW * 9 / 16;
-      const gridH = rows * tileH + totalGapH;
-      const overflow = Math.max(0, gridH - H);
-      const area = tileW * tileH;
-      if (overflow < minOverflow || (overflow === minOverflow && area > bestArea)) {
-        minOverflow = overflow; bestArea = area; bestCols = cols;
-      }
-    }
-    return bestCols;
-  }
-
-  function applyLayout() {
-    const n = Math.max(1, lastLive.length);
-    const tiles = matrixBody.children;
-
-    // Reset any explicit placement from prior layouts
-    Array.from(tiles).forEach(t => {
-      t.style.gridColumn = '';
-      t.style.gridRow = '';
     });
-    matrixBody.style.gridTemplateColumns = '';
-    matrixBody.style.gridTemplateRows = '';
 
-    // Special layout for exactly 5 streams:
-    // two large tiles on top row (each half width) and
-    // three smaller tiles on bottom row (each third width).
-    if (n === 5) {
-      matrixBody.style.gridTemplateColumns = 'repeat(6, minmax(0, 1fr))';
-      if (tiles[0]) tiles[0].style.gridColumn = 'span 3';
-      if (tiles[1]) tiles[1].style.gridColumn = 'span 3';
-      if (tiles[2]) tiles[2].style.gridColumn = 'span 2';
-      if (tiles[3]) tiles[3].style.gridColumn = 'span 2';
-      if (tiles[4]) tiles[4].style.gridColumn = 'span 2';
-      return;
-    }
-
-    // Default responsive layout
-    const gap = parseFloat(getComputedStyle(matrixBody).gap || "8");
-    const rect = matrixBody.getBoundingClientRect();
-    const cols = optimalCols(n, rect.width, rect.height, gap || 8);
-    matrixBody.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    /* Resume players that were paused on close */
+    playAllMatrixPlayers();
   }
 
-  document.body.style.overflow = 'hidden';
-  matrixBackdrop.style.display = 'flex';
   renderMatrixOnlineFeed();
   startMatrixRefreshInterval();
-  // Initial layout + responsive relayout
-  applyLayout();
+  applyMatrixLayout();
+
   if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
-  matrixResizeHandler = applyLayout;
+  matrixResizeHandler = applyMatrixLayout;
   window.addEventListener('resize', matrixResizeHandler, { passive: true });
 }
 
+/* --- closeMatrix — hide only, never destroy --- */
 function closeMatrix() {
   closeAllMatrixStreamPickers();
   stopMatrixRefreshInterval();
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
+
+  /* Pause all players to reduce background resource usage */
+  pauseAllMatrixPlayers();
+
   matrixBackdrop.style.display = 'none';
-  matrixBody.innerHTML = '';
-  if (matrixOnlineFeedEl) matrixOnlineFeedEl.innerHTML = '';
   document.body.style.overflow = '';
+
   if (matrixResizeHandler) {
     window.removeEventListener('resize', matrixResizeHandler);
     matrixResizeHandler = null;
   }
 }
+
+/* --- refreshMatrix — retrieve + generate + update via setChannel --- */
+async function refreshMatrix() {
+  await retrieveAll();
+  generateFromCache();
+  openMatrix();
+}
+
+/* --- Event listeners --- */
 matrixBackdrop.querySelector('.matrix-close').addEventListener('click', closeMatrix);
 matrixBody.addEventListener('click', (e) => {
   const nameButton = e.target.closest('.matrix-streamer-name[data-role="matrix-name-picker"]');
@@ -1468,35 +1286,12 @@ matrixBody.addEventListener('click', (e) => {
   closeAllMatrixStreamPickers();
 });
 matrixBackdrop.addEventListener('click', (e)=>{ if (e.target === matrixBackdrop) closeMatrix(); });
-window.addEventListener('beforeunload', () => {
-  stopMatrixRefreshInterval();
-  trimMatrixPlayerPool(0);
-});
-
-async function refreshMatrix() {
-  const currentDisplayed = getDisplayedMatrixStreams();
-  const targetCount = currentDisplayed.length || lastLive.length;
-  await retrieveAll();
-  generateFromCache();
-  if (currentDisplayed.length) {
-    const shownLower = new Set();
-    const stillLiveShown = currentDisplayed.filter((name) => {
-      const lc = String(name || '').toLowerCase();
-      if (!name || shownLower.has(lc)) return false;
-      shownLower.add(lc);
-      return !!resultsCache.get(name)?.isLive;
-    });
-    const supplement = (lastLive || []).filter((name) => {
-      const lc = String(name || '').toLowerCase();
-      if (!name || shownLower.has(lc)) return false;
-      shownLower.add(lc);
-      return true;
-    });
-    lastLive = [...stillLiveShown, ...supplement].slice(0, targetCount);
-  }
-  openMatrix();
-}
-
+matrixRefreshBtn.onclick = async () => {
+  if (matrixRefreshInProgress) return;
+  matrixRefreshInProgress = true;
+  try { await refreshMatrix(); }
+  finally { matrixRefreshInProgress = false; }
+};
 
 /* ---------- Boot ---------- */
 document.addEventListener("DOMContentLoaded", async ()=>{
@@ -1512,19 +1307,16 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   syncPinBlacklistButtons();
   initPersistence();
   attachStepperHandlers();
-  statusEl.textContent = "Idle. Grid is ready. Click ‘Retrieve’ to fetch categories and statuses.";
+  statusEl.textContent = "Idle. Grid is ready. Click 'Retrieve' to fetch categories and statuses.";
   pickedEl.textContent = "";
+
   document.getElementById("retrieveBtn").onclick = retrieveAll;
   document.getElementById("generateBtn").onclick = generateFromCache;
   matrixBtn.onclick = openMatrix;
-  matrixRefreshBtn.onclick = refreshMatrix;
   openBtn.onclick = () => finalURL && window.open(finalURL, "_blank");
   multiBtn.onclick = () => multiURL && window.open(multiURL, "_blank");
 
-  // === Preview interactions ===
   const gridEl = document.getElementById("gridContainer");
-
-  // Click a live name -> single preview
   gridEl.addEventListener("click", (e) => {
     const label = e.target.closest('span[id^="status-"]');
     if (!label) return;
@@ -1533,8 +1325,6 @@ document.addEventListener("DOMContentLoaded", async ()=>{
     if (!r?.isLive) return;
     openPreview({ title: name, nodes: [ makePreviewCard(name) ] });
   });
-
-  // Click a tier header -> gallery of live names in that tier
   gridEl.addEventListener("click", (e) => {
     const header = e.target.closest('.tier > h3');
     if (!header) return;
