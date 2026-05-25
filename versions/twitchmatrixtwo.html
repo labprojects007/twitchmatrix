@@ -867,6 +867,9 @@ function setTwitchPlayerChannel(index, channelName) {
   if (!player) return;
   if (typeof player.setChannel === 'function') {
     player.setChannel(channelName);
+    setTimeout(() => {
+      try { player.setQuality('160p30'); } catch(e) { /* ignore */ }
+    }, 2000);
   } else {
     console.warn(`setChannel not available on player ${index}`);
   }
@@ -1206,11 +1209,15 @@ function openMatrix() {
         height: '100%',
         autoplay: true,
         muted: true,
+        volume: 0,
         controls: false,
         quality: '160p',
         parent: [STATIC_HOST]
       });
       matrixPlayers.set(index, player);
+      player.addEventListener(Twitch.Player.READY, () => {
+        try { player.setQuality('160p30'); } catch(e) { /* ignore if unavailable */ }
+      });
     });
 
     matrixInitialized = true;
@@ -1236,6 +1243,7 @@ function openMatrix() {
 
     /* Resume players that were paused on close */
     playAllMatrixPlayers();
+    matrixPlayers.forEach(p => { try { p.setMuted(false); } catch(e){} });
   }
 
   renderMatrixOnlineFeed();
@@ -1256,6 +1264,7 @@ function closeMatrix() {
 
   /* Pause all players to reduce background resource usage */
   pauseAllMatrixPlayers();
+  matrixPlayers.forEach(p => { try { p.setMuted(true); } catch(e){} });
 
   matrixBackdrop.style.display = 'none';
   document.body.style.overflow = '';
