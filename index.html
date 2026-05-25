@@ -858,16 +858,33 @@ let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
+const matrixPlayingListeners = new Map();
 
 /* --- Player helpers --- */
 
 function applyMatrixQualityOnNextPlaying(player) {
-  if (!player || typeof player.addEventListener !== 'function' || typeof player.removeEventListener !== 'function') return;
+  if (!player || typeof player.addEventListener !== 'function') return;
+  if (matrixPlayingListeners.has(player)) return;
   const applyQuality = () => {
-    player.removeEventListener(Twitch.Player.PLAYING, applyQuality);
     try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore */ }
   };
+  matrixPlayingListeners.set(player, applyQuality);
   player.addEventListener(Twitch.Player.PLAYING, applyQuality);
+}
+
+function removeMatrixQualityPlayingListener(player) {
+  const applyQuality = matrixPlayingListeners.get(player);
+  if (!applyQuality) return;
+  if (typeof player.removeEventListener === 'function') {
+    player.removeEventListener(Twitch.Player.PLAYING, applyQuality);
+  }
+  matrixPlayingListeners.delete(player);
+}
+
+function teardownMatrixPlayers() {
+  matrixPlayers.forEach((player) => {
+    removeMatrixQualityPlayingListener(player);
+  });
 }
 
 function setTwitchPlayerChannel(index, channelName) {
@@ -1211,6 +1228,7 @@ function openMatrix() {
       player.addEventListener(Twitch.Player.READY, () => {
         try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore if unavailable */ }
       });
+      applyMatrixQualityOnNextPlaying(player);
     });
 
     matrixInitialized = true;
@@ -1261,6 +1279,8 @@ function closeMatrix() {
     matrixResizeHandler = null;
   }
 }
+
+window.addEventListener('beforeunload', teardownMatrixPlayers);
 
 /* --- refreshMatrix — retrieve + generate + update via setChannel --- */
 async function refreshMatrix() {
