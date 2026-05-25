@@ -885,22 +885,6 @@ function updateTileBadge(index, channelName) {
   if (xbtn) setMatrixPinStateButtonStyle(xbtn, channelName);
 }
 
-function pauseAllMatrixPlayers() {
-  matrixPlayers.forEach((player) => {
-    if (player && typeof player.pause === 'function') {
-      try { player.pause(); } catch(e) { /* ignore */ }
-    }
-  });
-}
-
-function playAllMatrixPlayers() {
-  matrixPlayers.forEach((player) => {
-    if (player && typeof player.play === 'function') {
-      try { player.play(); } catch(e) { /* ignore */ }
-    }
-  });
-}
-
 /* --- Interval --- */
 function getRefreshMinutes() {
   const n = parseInt(document.getElementById("inputRefresh")?.value || "0", 10);
@@ -1210,7 +1194,7 @@ function openMatrix() {
         autoplay: true,
         muted: true,
         volume: 0,
-        controls: false,
+        controls: true,
         quality: '160p',
         parent: [STATIC_HOST]
       });
@@ -1242,8 +1226,6 @@ function openMatrix() {
     });
 
     /* Resume players that were paused on close */
-    playAllMatrixPlayers();
-    matrixPlayers.forEach(p => { try { p.setMuted(false); } catch(e){} });
   }
 
   renderMatrixOnlineFeed();
@@ -1261,10 +1243,6 @@ function closeMatrix() {
   stopMatrixRefreshInterval();
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
-
-  /* Pause all players to reduce background resource usage */
-  pauseAllMatrixPlayers();
-  matrixPlayers.forEach(p => { try { p.setMuted(true); } catch(e){} });
 
   matrixBackdrop.style.display = 'none';
   document.body.style.overflow = '';
