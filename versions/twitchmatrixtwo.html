@@ -976,50 +976,50 @@ let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
 const matrixPlayerPool = [];
+let twitchEmbedReadyPromise = null;
 function hostName(){ return window.location.hostname; }
 
-function buildPlayerSrc(name) {
-  const params = new URLSearchParams();
-  const host = hostName();
-  params.set('channel', name || '');
-  if (host) params.set('parent', host);
-  params.set('autoplay', 'true');
-  params.set('muted', 'true');
-  params.set('controls', 'false');
-  params.set('quality', '160p');
-  params.set('ts', Date.now().toString());
-  return `https://player.twitch.tv/?${params.toString()}`;
+function ensureTwitchEmbedScript() {
+  if (window.Twitch?.Embed) return Promise.resolve();
+  if (twitchEmbedReadyPromise) return twitchEmbedReadyPromise;
+  twitchEmbedReadyPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-twitch-embed="true"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Failed to load Twitch embed script')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://embed.twitch.tv/embed/v1.js';
+    script.async = true;
+    script.dataset.twitchEmbed = 'true';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Twitch embed script'));
+    document.head.appendChild(script);
+  });
+  return twitchEmbedReadyPromise;
 }
 
-function createMatrixIframe(name) {
-  const iframe = document.createElement('iframe');
-  iframe.src = buildPlayerSrc(name);
-  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
-  iframe.setAttribute('importance', 'low');
-  iframe.loading = 'lazy';
-  return iframe;
+function createMatrixIframe() {
+  const mount = document.createElement('div');
+  mount.className = 'matrix-player-mount';
+  return mount;
 }
 
-function setMatrixIframeChannel(iframe, name) {
-  if (!iframe || !name) return;
-  try {
-    iframe.contentWindow?.postMessage({
-      event: 'command',
-      func: 'setChannel',
-      args: [name]
-    }, 'https://player.twitch.tv');
-  } catch (err) {
-    console.warn('setChannel failed, falling back to src reset', err);
-    iframe.src = buildPlayerSrc(name);
+function setMatrixIframeChannel(slot, name) {
+  if (!slot || !name) return;
+  if (slot.player?.setChannel) {
+    slot.player.setChannel(name);
+    return;
   }
+  slot.pendingChannel = name;
 }
 
 function ensureMatrixPlayerPool(size) {
   const target = Math.max(0, size);
   while (matrixPlayerPool.length < target) {
-    const iframe = createMatrixIframe('');
-    matrixPlayerPool.push({ iframe, channel: '' });
+    const mount = createMatrixIframe();
+    matrixPlayerPool.push({ mount, channel: '', embed: null, player: null, pendingChannel: '' });
   }
 }
 
@@ -1027,10 +1027,11 @@ function trimMatrixPlayerPool(size) {
   const target = Math.max(0, size);
   if (target >= matrixPlayerPool.length) return;
   const removed = matrixPlayerPool.splice(target);
-  removed.forEach(({ iframe }) => {
-    iframe.src = 'about:blank';
-    iframe.removeAttribute('src');
-    iframe.remove();
+  removed.forEach((slot) => {
+    slot.player = null;
+    slot.embed = null;
+    slot.pendingChannel = '';
+    slot.mount?.remove();
   });
 }
 
@@ -1165,7 +1166,7 @@ async function replaceMatrixTileStream(tile, nextName) {
   if (!Number.isNaN(idx)) {
     const slot = matrixPlayerPool[idx];
     if (slot) {
-      setMatrixIframeChannel(slot.iframe, nextName);
+      setMatrixIframeChannel(slot, nextName);
       slot.channel = nextName;
     }
   }
@@ -1298,11 +1299,33 @@ function openMatrix() {
     tile.dataset.streamer = name;
 
     const slot = matrixPlayerPool[idx];
-    let iframe = slot.iframe;
-    if (slot.channel) {
-      setMatrixIframeChannel(iframe, name);
-    } else {
-      iframe.src = buildPlayerSrc(name);
+    let mount = slot.mount;
+    if (!slot.embed) {
+      ensureTwitchEmbedScript().then(() => {
+        const host = hostName();
+        if (!host || !window.Twitch?.Embed) return;
+        const embed = new Twitch.Embed(mount, {
+          width: '100%',
+          height: '100%',
+          channel: name,
+          layout: 'video',
+          parent: [host],
+          autoplay: true,
+          muted: true
+        });
+        slot.embed = embed;
+        embed.addEventListener(Twitch.Embed.READY, () => {
+          const player = embed.getPlayer();
+          slot.player = player;
+          const target = slot.pendingChannel || slot.channel || name;
+          if (target && target !== name && player?.setChannel) player.setChannel(target);
+          slot.pendingChannel = '';
+        });
+      }).catch((err) => {
+        console.warn('Unable to initialize Twitch embed player', err);
+      });
+    } else if (slot.channel) {
+      setMatrixIframeChannel(slot, name);
     }
     slot.channel = name;
 
@@ -1319,7 +1342,7 @@ function openMatrix() {
     nameBadge.dataset.role = 'matrix-name-picker';
     tile.dataset.slotIndex = String(idx);
 
-    tile.append(iframe, xbtn, nameBadge);
+    tile.append(mount, xbtn, nameBadge);
     matrixBody.appendChild(tile);
   });
 
