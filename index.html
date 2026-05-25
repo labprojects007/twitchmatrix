@@ -1474,8 +1474,26 @@ window.addEventListener('beforeunload', () => {
 });
 
 async function refreshMatrix() {
+  const currentDisplayed = getDisplayedMatrixStreams();
+  const targetCount = currentDisplayed.length || lastLive.length;
   await retrieveAll();
   generateFromCache();
+  if (currentDisplayed.length) {
+    const shownLower = new Set();
+    const stillLiveShown = currentDisplayed.filter((name) => {
+      const lc = String(name || '').toLowerCase();
+      if (!name || shownLower.has(lc)) return false;
+      shownLower.add(lc);
+      return !!resultsCache.get(name)?.isLive;
+    });
+    const supplement = (lastLive || []).filter((name) => {
+      const lc = String(name || '').toLowerCase();
+      if (!name || shownLower.has(lc)) return false;
+      shownLower.add(lc);
+      return true;
+    });
+    lastLive = [...stillLiveShown, ...supplement].slice(0, targetCount);
+  }
   openMatrix();
 }
 
