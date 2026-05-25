@@ -12,12 +12,21 @@ size back-fill works by iterating over previous tiers
 tier 5 and tier 6 are present
 name previews work
 tier previews work
-feeds dynamically resize based on screen size
+
 retrieve button works
 generate button works
 matrix button works
-refresh button works
 open twitch theater works
 open multi twitch works
-timered refresh works
+
+feeds dynamically resize based on screen size
+feeds autoplay
+quality is set to 160p
 timer countdown works
+timer refresh works
+refresh button works
+single streamer replacement works 
+online names show up
+clicking online names does retrieve
+feed button cycles pin none blacklist
+
