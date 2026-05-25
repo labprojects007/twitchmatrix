@@ -130,9 +130,7 @@
     .matrix-backdrop {
       position: fixed; inset: 0;
       background: rgba(0,0,0,.9);
-      display: flex;
-      visibility: hidden;
-      pointer-events: none;
+      display: none;
       align-items: stretch; justify-content: stretch;
       z-index: 10000;
     }
@@ -809,7 +807,7 @@ function initPersistence(){
   document.querySelectorAll('#inputBatch,#inputSize,#inputRefresh,#lim1,#lim2,#lim3,#lim4,#lim5,#lim6').forEach(el=>el.addEventListener("change", persist));
   [1,2,3,4,5,6].forEach(i=>document.getElementById("lim"+i).addEventListener("change", renderTierOnlineSnapshot));
   document.getElementById("inputRefresh").addEventListener("change", () => {
-    if (matrixBackdrop.style.visibility === 'visible') startMatrixRefreshInterval();
+    if (matrixBackdrop.style.display === 'flex') startMatrixRefreshInterval();
   });
   [1,2,3,4,5,6].forEach(i=>document.getElementById("rand"+i).addEventListener("change", persist));
 }
@@ -831,7 +829,7 @@ function closePreview() {
 }
 previewBackdrop.addEventListener('click', (e) => { if (e.target === previewBackdrop) closePreview(); });
 previewBackdrop.querySelector('.preview-close').addEventListener('click', closePreview);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (matrixBackdrop.style.visibility==='visible') closeMatrix(); else closePreview(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (matrixBackdrop.style.display==='flex') closeMatrix(); else closePreview(); } });
 
 function makePreviewCard(name) {
   const r = resultsCache.get(name) || {};
@@ -1068,7 +1066,7 @@ matrixOnlineFeedEl?.addEventListener("click", async (e) => {
 
 /* --- Refresh displayed streams (timer path) --- */
 async function refreshDisplayedMatrixStreams() {
-  if (matrixBackdrop.style.visibility !== 'visible') return;
+  if (matrixBackdrop.style.display !== 'flex') return;
   const displayed = getDisplayedMatrixStreams();
   if (!displayed.length) return;
   const fetched = await fetchBatch(displayed);
@@ -1152,8 +1150,7 @@ function openMatrix() {
     return;
   }
 
-  matrixBackdrop.style.visibility = 'visible';
-  matrixBackdrop.style.pointerEvents = '';
+  matrixBackdrop.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
   if (!matrixInitialized) {
@@ -1247,8 +1244,7 @@ function closeMatrix() {
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
 
-  matrixBackdrop.style.visibility = 'hidden';
-  matrixBackdrop.style.pointerEvents = 'none';
+  matrixBackdrop.style.display = 'none';
   document.body.style.overflow = '';
 
   if (matrixResizeHandler) {
