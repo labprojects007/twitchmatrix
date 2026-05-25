@@ -434,6 +434,8 @@ let sessionBlacklist = new Set();
 const matrixPlayers = new Map();
 const matrixTiles = new Map();
 let matrixInitialized = false;
+const MATRIX_RESOLUTION = '360p';
+const MATRIX_RESOLUTION_FPS = `${MATRIX_RESOLUTION}30`;
 
 /* ---------- Persistence ---------- */
 const LS_KEY = "twitchcategories_settings_v2";
@@ -868,7 +870,7 @@ function setTwitchPlayerChannel(index, channelName) {
   if (typeof player.setChannel === 'function') {
     player.setChannel(channelName);
     setTimeout(() => {
-      try { player.setQuality('160p30'); } catch(e) { /* ignore */ }
+      try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore */ }
     }, 2000);
   } else {
     console.warn(`setChannel not available on player ${index}`);
@@ -1195,12 +1197,12 @@ function openMatrix() {
         muted: true,
         volume: 0,
         controls: true,
-        quality: '160p',
+        quality: MATRIX_RESOLUTION,
         parent: [STATIC_HOST]
       });
       matrixPlayers.set(index, player);
       player.addEventListener(Twitch.Player.READY, () => {
-        try { player.setQuality('160p30'); } catch(e) { /* ignore if unavailable */ }
+        try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore if unavailable */ }
       });
     });
 
