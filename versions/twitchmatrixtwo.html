@@ -970,13 +970,13 @@ const matrixBackdrop = document.getElementById('matrixBackdrop');
 const matrixBody = document.getElementById('matrixBody');
 const matrixRefreshCountdownEl = document.getElementById('matrixRefreshCountdown');
 const matrixOnlineFeedEl = document.getElementById('matrixOnlineFeed');
-let retrievePromise = null;
 let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
 const matrixPlayerPool = [];
 let twitchEmbedReadyPromise = null;
+const MATRIX_PREFERRED_QUALITY = '160p30';
 function hostName(){ return window.location.hostname; }
 
 function ensureTwitchEmbedScript() {
@@ -985,6 +985,10 @@ function ensureTwitchEmbedScript() {
   twitchEmbedReadyPromise = new Promise((resolve, reject) => {
     const existing = document.querySelector('script[data-twitch-embed="true"]');
     if (existing) {
+      if (window.Twitch?.Embed) {
+        resolve();
+        return;
+      }
       existing.addEventListener('load', () => resolve(), { once: true });
       existing.addEventListener('error', () => reject(new Error('Failed to load Twitch embed script')), { once: true });
       return;
@@ -1013,6 +1017,15 @@ function setMatrixIframeChannel(slot, name) {
     return;
   }
   slot.pendingChannel = name;
+}
+
+function applyPreferredQuality(slot) {
+  if (!slot?.player?.setQuality) return;
+  try {
+    slot.player.setQuality(MATRIX_PREFERRED_QUALITY);
+  } catch (err) {
+    console.debug('Unable to set preferred Twitch quality', err);
+  }
 }
 
 function ensureMatrixPlayerPool(size) {
@@ -1317,6 +1330,7 @@ function openMatrix() {
         embed.addEventListener(Twitch.Embed.READY, () => {
           const player = embed.getPlayer();
           slot.player = player;
+          applyPreferredQuality(slot);
           const target = slot.pendingChannel || slot.channel || name;
           if (target && target !== name && player?.setChannel) player.setChannel(target);
           slot.pendingChannel = '';
@@ -1460,8 +1474,26 @@ window.addEventListener('beforeunload', () => {
 });
 
 async function refreshMatrix() {
+  const currentDisplayed = getDisplayedMatrixStreams();
+  const targetCount = currentDisplayed.length || lastLive.length;
   await retrieveAll();
   generateFromCache();
+  if (currentDisplayed.length) {
+    const shownLower = new Set();
+    const stillLiveShown = currentDisplayed.filter((name) => {
+      const lc = String(name || '').toLowerCase();
+      if (!name || shownLower.has(lc)) return false;
+      shownLower.add(lc);
+      return !!resultsCache.get(name)?.isLive;
+    });
+    const supplement = (lastLive || []).filter((name) => {
+      const lc = String(name || '').toLowerCase();
+      if (!name || shownLower.has(lc)) return false;
+      shownLower.add(lc);
+      return true;
+    });
+    lastLive = [...stillLiveShown, ...supplement].slice(0, targetCount);
+  }
   openMatrix();
 }
 
