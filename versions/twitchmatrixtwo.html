@@ -861,6 +861,15 @@ let matrixResizeHandler = null;
 
 /* --- Player helpers --- */
 
+function applyMatrixQualityOnNextPlaying(player) {
+  if (!player || typeof player.addEventListener !== 'function' || typeof player.removeEventListener !== 'function') return;
+  const applyQuality = () => {
+    player.removeEventListener(Twitch.Player.PLAYING, applyQuality);
+    try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore */ }
+  };
+  player.addEventListener(Twitch.Player.PLAYING, applyQuality);
+}
+
 function setTwitchPlayerChannel(index, channelName) {
   /* The ONLY correct way to change a stream without destroying the player.
      Twitch.Player.setChannel() transitions the existing decoder context
@@ -869,9 +878,7 @@ function setTwitchPlayerChannel(index, channelName) {
   if (!player) return;
   if (typeof player.setChannel === 'function') {
     player.setChannel(channelName);
-    setTimeout(() => {
-      try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore */ }
-    }, 2000);
+    applyMatrixQualityOnNextPlaying(player);
   } else {
     console.warn(`setChannel not available on player ${index}`);
   }
