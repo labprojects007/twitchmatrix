@@ -858,22 +858,15 @@ let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
-const qualityListeners = new Map();
 
 /* --- Player helpers --- */
 
-function applyMatrixQualityOnNextPlaying(index, player) {
+function applyMatrixQualityOnNextPlaying(player) {
   if (!player || typeof player.addEventListener !== 'function' || typeof player.removeEventListener !== 'function') return;
-  const existingListener = qualityListeners.get(index);
-  if (existingListener) {
-    player.removeEventListener(Twitch.Player.PLAYING, existingListener);
-  }
   const applyQuality = () => {
     player.removeEventListener(Twitch.Player.PLAYING, applyQuality);
-    qualityListeners.delete(index);
     try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore */ }
   };
-  qualityListeners.set(index, applyQuality);
   player.addEventListener(Twitch.Player.PLAYING, applyQuality);
 }
 
@@ -885,7 +878,7 @@ function setTwitchPlayerChannel(index, channelName) {
   if (!player) return;
   if (typeof player.setChannel === 'function') {
     player.setChannel(channelName);
-    applyMatrixQualityOnNextPlaying(index, player);
+    applyMatrixQualityOnNextPlaying(player);
   } else {
     console.warn(`setChannel not available on player ${index}`);
   }
