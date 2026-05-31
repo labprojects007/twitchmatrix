@@ -883,16 +883,20 @@ const qualityListeners = new Map();
 
 function applyMatrixQualityOnNextPlaying(index, player) {
   if (!player || typeof player.addEventListener !== 'function' || typeof player.removeEventListener !== 'function') return;
-  const existingListener = qualityListeners.get(index);
-  if (existingListener) {
-    player.removeEventListener(Twitch.Player.PLAYING, existingListener);
+  const existing = qualityListeners.get(index);
+  if (existing) {
+    existing.player.removeEventListener(Twitch.Player.PLAYING, existing.listener);
+    qualityListeners.delete(index);
   }
   const applyQuality = () => {
     player.removeEventListener(Twitch.Player.PLAYING, applyQuality);
-    qualityListeners.delete(index);
+    const current = qualityListeners.get(index);
+    if (current && current.listener === applyQuality && current.player === player) {
+      qualityListeners.delete(index);
+    }
     try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore */ }
   };
-  qualityListeners.set(index, applyQuality);
+  qualityListeners.set(index, { player, listener: applyQuality });
   player.addEventListener(Twitch.Player.PLAYING, applyQuality);
 }
 
