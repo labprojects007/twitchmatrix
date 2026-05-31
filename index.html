@@ -36,6 +36,10 @@
       width:56px; height:36px; padding:4px 6px; border-radius:9px; border:1px solid var(--border);
       background: var(--panel); color:#f5f5f7; text-align:center; font-size:14px;
     }
+    .resolution-select{
+      height:36px; min-width:92px; padding:4px 8px; border-radius:9px; border:1px solid var(--border);
+      background: var(--panel); color:#f5f5f7; font-size:14px;
+    }
     .step-btn{ height:36px; min-width:36px; padding:0 8px; font-size:15px; font-weight:700; border-radius:9px;
       border:1px solid var(--border); background:#2b2b31; color:#f5f5f7; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
     .step-btn:hover{ filter:brightness(1.08); }
@@ -293,6 +297,15 @@
             <button class="step-btn down" data-target="inputRefresh">▼</button>
           </div>
         </div>
+        <div class="field">Resolution
+          <select id="inputResolution" class="resolution-select" aria-label="Twitch resolution">
+            <option value="160p" selected>160p</option>
+            <option value="360p">360p</option>
+            <option value="480p">480p</option>
+            <option value="720p">720p</option>
+            <option value="1080p">1080p</option>
+          </select>
+        </div>
       </div>
 
       <div class="limits-vertical" id="limitsGrid">
@@ -434,8 +447,11 @@ let sessionBlacklist = new Set();
 const matrixPlayers = new Map();
 const matrixTiles = new Map();
 let matrixInitialized = false;
-const MATRIX_RESOLUTION = '160p';
-const MATRIX_RESOLUTION_FPS = `${MATRIX_RESOLUTION}30`;
+const MATRIX_RESOLUTION_DEFAULT = '160p';
+function matrixResolution(forQuality=false) {
+  const resolution = document.getElementById('inputResolution')?.value || MATRIX_RESOLUTION_DEFAULT;
+  return forQuality ? `${resolution}30` : resolution;
+}
 
 /* ---------- Persistence ---------- */
 const LS_KEY = "twitchcategories_settings_v2";
@@ -484,7 +500,7 @@ function syncPinBlacklistButtons(){
   });
 }
 function getSettings(){
-  const defaults={ batch:20, size:6, refresh:0, limits:[3,1,1,1,0,0], random:[true,true,true,true,true,true] };
+  const defaults={ batch:20, size:6, refresh:0, resolution:MATRIX_RESOLUTION_DEFAULT, limits:[3,1,1,1,0,0], random:[true,true,true,true,true,true] };
   const savedCookie=loadCookieJSON(COOKIE_SETTINGS_KEY);
   const savedLocal=loadSettings();
   const saved = savedCookie ?? savedLocal;
@@ -492,6 +508,7 @@ function getSettings(){
     batch: saved.batch ?? defaults.batch,
     size: saved.size ?? defaults.size,
     refresh: saved.refresh ?? defaults.refresh,
+    resolution: saved.resolution ?? defaults.resolution,
     limits: Array.isArray(saved.limits)? saved.limits.concat([0,0,0,0,0,0]).slice(0,6) : defaults.limits,
     random: Array.isArray(saved.random)? saved.random.concat([true,true,true,true,true,true]).slice(0,6) : defaults.random
   }:defaults;
@@ -793,6 +810,7 @@ function initPersistence(){
   document.getElementById("inputBatch").value=s.batch;
   document.getElementById("inputSize").value=s.size;
   document.getElementById("inputRefresh").value=s.refresh;
+  document.getElementById("inputResolution").value=s.resolution;
   ["lim1","lim2","lim3","lim4","lim5","lim6"].forEach((id,i)=>document.getElementById(id).value=s.limits[i]);
   [1,2,3,4,5,6].forEach(i=>document.getElementById("rand"+i).checked=!!s.random[i-1]);
   function persist(){
@@ -800,13 +818,14 @@ function initPersistence(){
       batch: parseInt(document.getElementById("inputBatch").value||"20",10),
       size: parseInt(document.getElementById("inputSize").value||"6",10),
       refresh: parseInt(document.getElementById("inputRefresh").value||"0",10),
+      resolution: matrixResolution(),
       limits: [1,2,3,4,5,6].map(i=>parseInt(document.getElementById("lim"+i).value||"0",10) || 0),
       random: [1,2,3,4,5,6].map(i=>document.getElementById("rand"+i).checked)
     };
     saveSettings(nextSettings);
     writeCookie(COOKIE_SETTINGS_KEY, JSON.stringify(nextSettings));
   }
-  document.querySelectorAll('#inputBatch,#inputSize,#inputRefresh,#lim1,#lim2,#lim3,#lim4,#lim5,#lim6').forEach(el=>el.addEventListener("change", persist));
+  document.querySelectorAll('#inputBatch,#inputSize,#inputRefresh,#inputResolution,#lim1,#lim2,#lim3,#lim4,#lim5,#lim6').forEach(el=>el.addEventListener("change", persist));
   [1,2,3,4,5,6].forEach(i=>document.getElementById("lim"+i).addEventListener("change", renderTierOnlineSnapshot));
   document.getElementById("inputRefresh").addEventListener("change", () => {
     if (matrixBackdrop.style.display === 'flex') startMatrixRefreshInterval();
@@ -871,7 +890,7 @@ function applyMatrixQualityOnNextPlaying(index, player) {
   const applyQuality = () => {
     player.removeEventListener(Twitch.Player.PLAYING, applyQuality);
     qualityListeners.delete(index);
-    try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore */ }
+    try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore */ }
   };
   qualityListeners.set(index, applyQuality);
   player.addEventListener(Twitch.Player.PLAYING, applyQuality);
@@ -1211,12 +1230,12 @@ function openMatrix() {
         muted: true,
         volume: 0,
         controls: true,
-        quality: MATRIX_RESOLUTION,
+        quality: matrixResolution(),
         parent: [STATIC_HOST]
       });
       matrixPlayers.set(index, player);
       player.addEventListener(Twitch.Player.READY, () => {
-        try { player.setQuality(MATRIX_RESOLUTION_FPS); } catch(e) { /* ignore if unavailable */ }
+        try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore if unavailable */ }
       });
     });
 
