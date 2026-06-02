@@ -875,9 +875,15 @@ const matrixRefreshCountdownEl = document.getElementById('matrixRefreshCountdown
 const matrixOnlineFeedEl = document.getElementById('matrixOnlineFeed');
 let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
+let matrixOpenInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
 const qualityListeners = new Map();
+const MATRIX_FEED_STAGGER_MS = 3000;
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /* --- Player helpers --- */
 
@@ -1181,11 +1187,14 @@ function applyMatrixLayout() {
    First call: creates Twitch.Player instances and DOM tiles.
    Subsequent calls (refresh): updates existing players via setChannel.
    Players are NEVER destroyed. --------------------------------------- */
-function openMatrix() {
-  if (!lastLive.length) return;
+async function openMatrix() {
+  if (matrixOpenInProgress) return;
+  matrixOpenInProgress = true;
+  if (!lastLive.length) { matrixOpenInProgress = false; return; }
 
   if (!STATIC_HOST) {
     console.error('No hostname — cannot embed Twitch');
+    matrixOpenInProgress = false;
     return;
   }
 
@@ -1198,7 +1207,10 @@ function openMatrix() {
     matrixPlayers.clear();
     matrixTiles.clear();
 
+    const playerLoads = [];
     lastLive.forEach((name, index) => {
+      playerLoads.push((async () => {
+        await delay(index * MATRIX_FEED_STAGGER_MS);
       const tile = document.createElement('div');
       tile.className = 'tile';
       tile.dataset.streamer = name;
@@ -1241,7 +1253,9 @@ function openMatrix() {
       player.addEventListener(Twitch.Player.READY, () => {
         try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore if unavailable */ }
       });
+      })());
     });
+    await Promise.all(playerLoads);
 
     matrixInitialized = true;
 
@@ -1281,6 +1295,8 @@ function openMatrix() {
       finalNamesByIndex.set(index, nextName);
     });
 
+    const playerUpdates = [];
+    let updateDelay = 0;
     matrixPlayers.forEach((_, index) => {
       const currentName = currentNamesByIndex.get(index) || '';
       const finalName = String(finalNamesByIndex.get(index) || '').trim();
@@ -1288,6 +1304,10 @@ function openMatrix() {
       if (!finalName) return;
 
       if (currentName.toLowerCase() !== finalName.toLowerCase()) {
+        const waitMs = updateDelay;
+        updateDelay += MATRIX_FEED_STAGGER_MS;
+        playerUpdates.push((async () => {
+          await delay(waitMs);
         setTwitchPlayerChannel(index, finalName);
         updateTileBadge(index, finalName);
 
@@ -1299,8 +1319,10 @@ function openMatrix() {
             xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
           }
         }
+        })());
       }
     });
+    await Promise.all(playerUpdates);
 
     /* Persist the final slot assignments (index order) as the new lastLive. */
     const finalAssignedNames = [];
@@ -1320,29 +1342,24 @@ function openMatrix() {
   if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
   matrixResizeHandler = applyMatrixLayout;
   window.addEventListener('resize', matrixResizeHandler, { passive: true });
+  matrixOpenInProgress = false;
 }
 
-/* --- closeMatrix — hide only, never destroy --- */
+/* --- closeMatrix — browser refresh for full embed/resource cleanup --- */
 function closeMatrix() {
   closeAllMatrixStreamPickers();
   stopMatrixRefreshInterval();
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
 
-  matrixBackdrop.style.display = 'none';
-  document.body.style.overflow = '';
-
-  if (matrixResizeHandler) {
-    window.removeEventListener('resize', matrixResizeHandler);
-    matrixResizeHandler = null;
-  }
+  window.location.reload();
 }
 
 /* --- refreshMatrix — retrieve + generate + update via setChannel --- */
 async function refreshMatrix() {
   await retrieveAll();
   generateFromCache();
-  openMatrix();
+  await openMatrix();
 }
 
 /* --- Event listeners --- */
@@ -1384,7 +1401,7 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 
   document.getElementById("retrieveBtn").onclick = retrieveAll;
   document.getElementById("generateBtn").onclick = generateFromCache;
-  matrixBtn.onclick = openMatrix;
+  matrixBtn.onclick = () => openMatrix().catch(err => console.error('Matrix open failed', err));
   openBtn.onclick = () => finalURL && window.open(finalURL, "_blank");
   multiBtn.onclick = () => multiURL && window.open(multiURL, "_blank");
 
