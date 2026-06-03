@@ -1323,13 +1323,20 @@ function openMatrix() {
   renderMatrixOnlineFeed();
   startMatrixRefreshInterval();
 
-  requestAnimationFrame(() => {
-    applyMatrixLayout();
+  const ro = new ResizeObserver((entries, observer) => {
+    const entry = entries[0];
+    const w = entry.contentRect.width;
+    const h = entry.contentRect.height;
+    if (w > 0 && h > 0) {
+      observer.disconnect();
+      applyMatrixLayout();
 
-    if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
-    matrixResizeHandler = applyMatrixLayout;
-    window.addEventListener('resize', matrixResizeHandler, { passive: true });
+      if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
+      matrixResizeHandler = applyMatrixLayout;
+      window.addEventListener('resize', matrixResizeHandler, { passive: true });
+    }
   });
+  ro.observe(matrixBody);
 }
 
 /* --- closeMatrix — browser refresh for full embed/resource cleanup --- */
