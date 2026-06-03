@@ -875,15 +875,9 @@ const matrixRefreshCountdownEl = document.getElementById('matrixRefreshCountdown
 const matrixOnlineFeedEl = document.getElementById('matrixOnlineFeed');
 let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
-let matrixOpenInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
 const qualityListeners = new Map();
-const MATRIX_FEED_STAGGER_MS = 3000;
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 /* --- Player helpers --- */
 
@@ -1187,14 +1181,11 @@ function applyMatrixLayout() {
    First call: creates Twitch.Player instances and DOM tiles.
    Subsequent calls (refresh): updates existing players via setChannel.
    Players are NEVER destroyed. --------------------------------------- */
-async function openMatrix() {
-  if (matrixOpenInProgress) return;
-  matrixOpenInProgress = true;
-  if (!lastLive.length) { matrixOpenInProgress = false; return; }
+function openMatrix() {
+  if (!lastLive.length) return;
 
   if (!STATIC_HOST) {
     console.error('No hostname — cannot embed Twitch');
-    matrixOpenInProgress = false;
     return;
   }
 
@@ -1207,10 +1198,7 @@ async function openMatrix() {
     matrixPlayers.clear();
     matrixTiles.clear();
 
-    const playerLoads = [];
     lastLive.forEach((name, index) => {
-      playerLoads.push((async () => {
-        await delay(index * MATRIX_FEED_STAGGER_MS);
       const tile = document.createElement('div');
       tile.className = 'tile';
       tile.dataset.streamer = name;
@@ -1253,9 +1241,7 @@ async function openMatrix() {
       player.addEventListener(Twitch.Player.READY, () => {
         try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore if unavailable */ }
       });
-      })());
     });
-    await Promise.all(playerLoads);
 
     matrixInitialized = true;
 
@@ -1295,8 +1281,6 @@ async function openMatrix() {
       finalNamesByIndex.set(index, nextName);
     });
 
-    const playerUpdates = [];
-    let updateDelay = 0;
     matrixPlayers.forEach((_, index) => {
       const currentName = currentNamesByIndex.get(index) || '';
       const finalName = String(finalNamesByIndex.get(index) || '').trim();
@@ -1304,10 +1288,6 @@ async function openMatrix() {
       if (!finalName) return;
 
       if (currentName.toLowerCase() !== finalName.toLowerCase()) {
-        const waitMs = updateDelay;
-        updateDelay += MATRIX_FEED_STAGGER_MS;
-        playerUpdates.push((async () => {
-          await delay(waitMs);
         setTwitchPlayerChannel(index, finalName);
         updateTileBadge(index, finalName);
 
@@ -1319,10 +1299,8 @@ async function openMatrix() {
             xbtn.onclick = () => cycleMatrixTilePinState(tile, xbtn);
           }
         }
-        })());
       }
     });
-    await Promise.all(playerUpdates);
 
     /* Persist the final slot assignments (index order) as the new lastLive. */
     const finalAssignedNames = [];
@@ -1342,7 +1320,6 @@ async function openMatrix() {
   if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
   matrixResizeHandler = applyMatrixLayout;
   window.addEventListener('resize', matrixResizeHandler, { passive: true });
-  matrixOpenInProgress = false;
 }
 
 /* --- closeMatrix — browser refresh for full embed/resource cleanup --- */
@@ -1359,7 +1336,7 @@ function closeMatrix() {
 async function refreshMatrix() {
   await retrieveAll();
   generateFromCache();
-  await openMatrix();
+  openMatrix();
 }
 
 /* --- Event listeners --- */
@@ -1401,7 +1378,7 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 
   document.getElementById("retrieveBtn").onclick = retrieveAll;
   document.getElementById("generateBtn").onclick = generateFromCache;
-  matrixBtn.onclick = () => openMatrix().catch(err => console.error('Matrix open failed', err));
+  matrixBtn.onclick = openMatrix;
   openBtn.onclick = () => finalURL && window.open(finalURL, "_blank");
   multiBtn.onclick = () => multiURL && window.open(multiURL, "_blank");
 
