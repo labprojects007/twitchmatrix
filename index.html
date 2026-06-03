@@ -870,6 +870,7 @@ function makePreviewCard(name) {
 
 /* ---------- Matrix Overlay — Twitch.Player persistent ---------- */
 const matrixBackdrop = document.getElementById('matrixBackdrop');
+const matrixHeader = matrixBackdrop.querySelector('.matrix-header');
 const matrixBody = document.getElementById('matrixBody');
 const matrixRefreshCountdownEl = document.getElementById('matrixRefreshCountdown');
 const matrixOnlineFeedEl = document.getElementById('matrixOnlineFeed');
@@ -1173,7 +1174,13 @@ function applyMatrixLayout() {
   }
   const gap = parseFloat(getComputedStyle(matrixBody).gap || "8");
   const rect = matrixBody.getBoundingClientRect();
-  const cols = optimalCols(n, rect.width, rect.height, gap || 8);
+  let width = rect.width;
+  let height = rect.height;
+  if (!width || !height) {
+    width = window.innerWidth;
+    height = Math.max(0, window.innerHeight - (matrixHeader.offsetHeight || 42));
+  }
+  const cols = optimalCols(n, width, height, gap || 8);
   matrixBody.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
 }
 
@@ -1315,11 +1322,14 @@ function openMatrix() {
 
   renderMatrixOnlineFeed();
   startMatrixRefreshInterval();
-  applyMatrixLayout();
 
-  if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
-  matrixResizeHandler = applyMatrixLayout;
-  window.addEventListener('resize', matrixResizeHandler, { passive: true });
+  requestAnimationFrame(() => {
+    applyMatrixLayout();
+
+    if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
+    matrixResizeHandler = applyMatrixLayout;
+    window.addEventListener('resize', matrixResizeHandler, { passive: true });
+  });
 }
 
 /* --- closeMatrix — browser refresh for full embed/resource cleanup --- */
