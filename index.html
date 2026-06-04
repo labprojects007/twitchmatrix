@@ -1163,15 +1163,6 @@ function applyMatrixLayout() {
   Array.from(tiles).forEach(t => { t.style.gridColumn = ''; t.style.gridRow = ''; });
   matrixBody.style.gridTemplateColumns = '';
   matrixBody.style.gridTemplateRows = '';
-  if (n === 5) {
-    matrixBody.style.gridTemplateColumns = 'repeat(6, minmax(0, 1fr))';
-    if (tiles[0]) tiles[0].style.gridColumn = 'span 3';
-    if (tiles[1]) tiles[1].style.gridColumn = 'span 3';
-    if (tiles[2]) tiles[2].style.gridColumn = 'span 2';
-    if (tiles[3]) tiles[3].style.gridColumn = 'span 2';
-    if (tiles[4]) tiles[4].style.gridColumn = 'span 2';
-    return;
-  }
   const gap = parseFloat(getComputedStyle(matrixBody).gap || "8");
   const rect = matrixBody.getBoundingClientRect();
   let width = rect.width;
@@ -1182,6 +1173,13 @@ function applyMatrixLayout() {
   }
   const cols = optimalCols(n, width, height, gap || 8);
   matrixBody.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  const rows = Math.ceil(n / cols);
+  const rowH = Math.floor((height - gap * (rows - 1)) / rows);
+  matrixBody.style.gridTemplateRows = `repeat(${rows}, ${rowH}px)`;
+  Array.from(matrixBody.children).forEach(t => {
+    t.style.aspectRatio = 'unset';
+    t.style.height = '100%';
+  });
 }
 
 /* --- openMatrix ---
