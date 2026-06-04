@@ -222,7 +222,8 @@
       overflow:auto;
       padding:2px;
       display:grid;
-      gap:2px;
+      gap:1px;
+      justify-content:center;
       align-content:start;
       background:#000;
     }
@@ -1163,7 +1164,7 @@ function applyMatrixLayout() {
   Array.from(tiles).forEach(t => { t.style.gridColumn = ''; t.style.gridRow = ''; });
   matrixBody.style.gridTemplateColumns = '';
   matrixBody.style.gridTemplateRows = '';
-  const gap = parseFloat(getComputedStyle(matrixBody).gap || "8");
+  const gap = 1;
   const rect = matrixBody.getBoundingClientRect();
   let width = rect.width;
   let height = rect.height;
@@ -1171,14 +1172,18 @@ function applyMatrixLayout() {
     width = window.innerWidth;
     height = Math.max(0, window.innerHeight - (matrixHeader.offsetHeight || 42));
   }
-  const cols = optimalCols(n, width, height, gap || 8);
-  matrixBody.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+  const cols = optimalCols(n, width, height, gap);
   const rows = Math.ceil(n / cols);
-  const rowH = Math.floor((height - gap * (rows - 1)) / rows);
-  matrixBody.style.gridTemplateRows = `repeat(${rows}, ${rowH}px)`;
+  const tileW = Math.floor((width - gap * (cols - 1)) / cols);
+  const tileH = Math.floor(tileW * 9 / 16);
+  matrixBody.style.gap = `${gap}px`;
+  matrixBody.style.gridTemplateColumns = `repeat(${cols}, ${tileW}px)`;
+  matrixBody.style.gridTemplateRows = `repeat(${rows}, ${tileH}px)`;
   Array.from(matrixBody.children).forEach(t => {
     t.style.aspectRatio = 'unset';
     t.style.height = '100%';
+    t.style.width = '100%';
   });
 }
 
