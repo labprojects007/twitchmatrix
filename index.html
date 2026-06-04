@@ -1132,9 +1132,9 @@ function optimalCols(n, W, H, gap) {
     const tileW = Math.max(0, (W - totalGapW) / cols);
     const tileH = tileW * 9 / 16;
     const gridH = rows * tileH + totalGapH;
-    const area = tileW * tileH;
+    const area = tileW * tileH * (n / (rows * cols));
     const overflow = Math.max(0, gridH - H);
-    const fits = overflow <= 0;
+    const fits = overflow <= H * 0.05;
     if (fits && (area > best.area || (area === best.area && cols > best.cols))) {
       best = {cols, area, overflow};
     }
@@ -1149,7 +1149,7 @@ function optimalCols(n, W, H, gap) {
     const tileH = tileW * 9 / 16;
     const gridH = rows * tileH + totalGapH;
     const overflow = Math.max(0, gridH - H);
-    const area = tileW * tileH;
+    const area = tileW * tileH * (n / (rows * cols));
     if (overflow < minOverflow || (overflow === minOverflow && area > bestArea)) {
       minOverflow = overflow; bestArea = area; bestCols = cols;
     }
