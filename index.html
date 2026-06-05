@@ -1175,7 +1175,17 @@ function applyMatrixLayout() {
 
   const cols = optimalCols(n, width, height, gap);
   const rows = Math.ceil(n / cols);
-  const tileW = Math.floor((width - gap * (cols - 1)) / cols);
+
+  // Size tiles to fit width
+  const tileWfromW = Math.floor((width - gap * (cols - 1)) / cols);
+  const tileHfromW = Math.floor(tileWfromW * 9 / 16);
+
+  // Size tiles to fit height
+  const tileHfromH = Math.floor((height - gap * (rows - 1)) / rows);
+  const tileWfromH = Math.floor(tileHfromH * 16 / 9);
+
+  // Use whichever constraint is tighter
+  const tileW = Math.min(tileWfromW, tileWfromH);
   const tileH = Math.floor(tileW * 9 / 16);
   matrixBody.style.gap = `${gap}px`;
   matrixBody.style.gridTemplateColumns = `repeat(${cols}, ${tileW}px)`;
