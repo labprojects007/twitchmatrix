@@ -1209,6 +1209,10 @@ function openMatrix() {
     return;
   }
 
+  document.documentElement.style.minHeight = '110vh';
+  window.scrollTo({ top: 1, behavior: 'instant' });
+  document.documentElement.style.minHeight = '';
+
   matrixBackdrop.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
