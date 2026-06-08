@@ -1201,18 +1201,13 @@ function applyMatrixLayout() {
    First call: creates Twitch.Player instances and DOM tiles.
    Subsequent calls (refresh): updates existing players via setChannel.
    Players are NEVER destroyed. --------------------------------------- */
-async function openMatrix() {
+function openMatrix() {
   if (!lastLive.length) return;
 
   if (!STATIC_HOST) {
     console.error('No hostname — cannot embed Twitch');
     return;
   }
-
-  document.documentElement.style.minHeight = '200vh';
-  window.scrollTo({ top: 100, behavior: 'instant' });
-  await new Promise(r => requestAnimationFrame(r));
-  document.documentElement.style.minHeight = '';
 
   matrixBackdrop.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -1371,7 +1366,7 @@ function closeMatrix() {
 async function refreshMatrix() {
   await retrieveAll();
   generateFromCache();
-  await openMatrix();
+  openMatrix();
 }
 
 /* --- Event listeners --- */
@@ -1413,7 +1408,7 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 
   document.getElementById("retrieveBtn").onclick = retrieveAll;
   document.getElementById("generateBtn").onclick = generateFromCache;
-  matrixBtn.onclick = () => openMatrix().catch(console.error);
+  matrixBtn.onclick = openMatrix;
   openBtn.onclick = () => finalURL && window.open(finalURL, "_blank");
   multiBtn.onclick = () => multiURL && window.open(multiURL, "_blank");
 
