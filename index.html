@@ -449,6 +449,7 @@ const matrixPlayers = new Map();
 const matrixTiles = new Map();
 let matrixInitialized = false;
 const MATRIX_RESOLUTION_DEFAULT = '160p';
+const QUALITY_DELAY_MS = 20000;
 function matrixResolution(forQuality=false) {
   const resolution = document.getElementById('inputResolution')?.value || MATRIX_RESOLUTION_DEFAULT;
   return forQuality ? `${resolution}30` : resolution;
@@ -879,27 +880,27 @@ let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
-const qualityListeners = new Map();
+const qualityTimers = new Map();
 
 /* --- Player helpers --- */
 
-function applyMatrixQualityOnNextPlaying(index, player) {
-  if (!player || typeof player.addEventListener !== 'function' || typeof player.removeEventListener !== 'function') return;
-  const existing = qualityListeners.get(index);
-  if (existing) {
-    existing.player.removeEventListener(Twitch.Player.PLAYING, existing.listener);
-    qualityListeners.delete(index);
-  }
-  const applyQuality = () => {
-    player.removeEventListener(Twitch.Player.PLAYING, applyQuality);
-    const current = qualityListeners.get(index);
-    if (current && current.listener === applyQuality && current.player === player) {
-      qualityListeners.delete(index);
+function applyMatrixQualityAfterDelay(index, player) {
+  if (!player || typeof player.setQuality !== 'function') return;
+  const existing = qualityTimers.get(index);
+  if (existing) clearTimeout(existing);
+
+  const timerId = setTimeout(() => {
+    if (qualityTimers.get(index) === timerId) {
+      qualityTimers.delete(index);
     }
     try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore */ }
-  };
-  qualityListeners.set(index, { player, listener: applyQuality });
-  player.addEventListener(Twitch.Player.PLAYING, applyQuality);
+  }, QUALITY_DELAY_MS);
+  qualityTimers.set(index, timerId);
+}
+
+function clearAllQualityTimers() {
+  qualityTimers.forEach((timerId) => clearTimeout(timerId));
+  qualityTimers.clear();
 }
 
 function setTwitchPlayerChannel(index, channelName) {
@@ -910,7 +911,7 @@ function setTwitchPlayerChannel(index, channelName) {
   if (!player) return;
   if (typeof player.setChannel === 'function') {
     player.setChannel(channelName);
-    applyMatrixQualityOnNextPlaying(index, player);
+    applyMatrixQualityAfterDelay(index, player);
   } else {
     console.warn(`setChannel not available on player ${index}`);
   }
@@ -1356,6 +1357,7 @@ function openMatrix() {
 function closeMatrix() {
   closeAllMatrixStreamPickers();
   stopMatrixRefreshInterval();
+  clearAllQualityTimers();
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
 
