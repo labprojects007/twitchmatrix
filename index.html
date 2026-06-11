@@ -1050,29 +1050,79 @@ function openMatrixTilePicker(tile) {
   const existing = tile.querySelector('.matrix-streamer-picker');
   if (existing) { existing.remove(); return; }
   closeAllMatrixStreamPickers();
+
   const currentName = tile.dataset.streamer || '';
-  const candidates = getMatrixReplacementCandidates(currentName);
-  if (!candidates.length) return;
+  const swapCandidates = getDisplayedMatrixStreams()
+    .filter(name => String(name).toLowerCase() !== String(currentName).toLowerCase());
+  const replaceCandidates = getMatrixReplacementCandidates(currentName);
+  if (!swapCandidates.length && !replaceCandidates.length) return;
 
   const ac = new AbortController();
   const select = document.createElement('select');
   select.className = 'matrix-streamer-picker';
+
   const placeholder = document.createElement('option');
-  placeholder.value = ''; placeholder.textContent = 'Select online stream'; placeholder.selected = true;
+  placeholder.value = ''; placeholder.textContent = 'Select stream'; placeholder.selected = true;
   select.appendChild(placeholder);
-  candidates.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name; select.appendChild(opt);
-  });
+
+  if (swapCandidates.length) {
+    const group = document.createElement('optgroup');
+    group.label = '↔ Swap with';
+    swapCandidates.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = `swap:${name}`; opt.textContent = name;
+      group.appendChild(opt);
+    });
+    select.appendChild(group);
+  }
+
+  if (replaceCandidates.length) {
+    const group = document.createElement('optgroup');
+    group.label = 'Replace with';
+    replaceCandidates.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = `replace:${name}`; opt.textContent = name;
+      group.appendChild(opt);
+    });
+    select.appendChild(group);
+  }
+
   select.addEventListener('change', () => {
     ac.abort();
-    const nextName = select.value; if (!nextName) return;
+    const value = select.value; if (!value) return;
     select.remove();
-    replaceMatrixTileStream(tile, nextName);
+
+    if (value.startsWith('swap:')) {
+      const targetName = value.slice(5);
+      let sourceIndex = -1;
+      let targetIndex = -1;
+      matrixTiles.forEach((t, idx) => {
+        if (t === tile) sourceIndex = idx;
+        if (String(t.dataset.streamer || '').toLowerCase() === String(targetName).toLowerCase()) targetIndex = idx;
+      });
+      if (sourceIndex === -1 || targetIndex === -1) return;
+
+      setTwitchPlayerChannel(sourceIndex, targetName);
+      setTwitchPlayerChannel(targetIndex, currentName);
+      updateTileBadge(sourceIndex, targetName);
+      updateTileBadge(targetIndex, currentName);
+
+      const swappedLive = lastLive.slice();
+      const sourceLive = swappedLive[sourceIndex];
+      swappedLive[sourceIndex] = swappedLive[targetIndex];
+      swappedLive[targetIndex] = sourceLive;
+      lastLive = swappedLive;
+
+      renderMatrixOnlineFeed();
+    } else if (value.startsWith('replace:')) {
+      replaceMatrixTileStream(tile, value.slice(8));
+    }
   }, { signal: ac.signal });
+
   select.addEventListener('blur', () => {
     setTimeout(() => { ac.abort(); select.remove(); }, 100);
   }, { signal: ac.signal });
+
   tile.appendChild(select);
   select.focus();
 }
