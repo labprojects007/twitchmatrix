@@ -105,7 +105,7 @@
       background: rgba(0,0,0,.64);
       display: none;
       align-items: center; justify-content: center;
-      z-index: 9999;
+      z-index: 10001;
     }
     .preview-modal {
       background: #111;
@@ -1154,6 +1154,16 @@ matrixOnlineFeedEl?.addEventListener("click", async (e) => {
   e.preventDefault();
   if (retrievePromise) return;
   await retrieveAll();
+});
+matrixTierStatsEl?.addEventListener("click", (e) => {
+  const pill = e.target.closest(".tier-pill");
+  if (!pill || !matrixTierStatsEl.contains(pill)) return;
+  const feedItems = getOnlineFeedNames();
+  if (!feedItems.length) return;
+  const grid = document.createElement("div");
+  grid.className = "preview-grid";
+  feedItems.forEach(item => grid.appendChild(makePreviewCard(item.name)));
+  openPreview({ title: "Online", nodes: [ grid ] });
 });
 
 /* --- Refresh displayed streams (timer path) --- */
