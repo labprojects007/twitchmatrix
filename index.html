@@ -1150,20 +1150,24 @@ function renderMatrixOnlineFeed() {
     .join('');
   matrixOnlineFeedEl.innerHTML = `<span class="matrix-online-feed-segment">${markup}</span>`;
 }
-matrixOnlineFeedEl?.addEventListener("click", async (e) => {
-  e.preventDefault();
-  if (retrievePromise) return;
+async function retrieveThenOpenOnlinePreview() {
   await retrieveAll();
-});
-matrixTierStatsEl?.addEventListener("click", (e) => {
-  const pill = e.target.closest(".tier-pill");
-  if (!pill || !matrixTierStatsEl.contains(pill)) return;
   const feedItems = getOnlineFeedNames();
   if (!feedItems.length) return;
   const grid = document.createElement("div");
   grid.className = "preview-grid";
   feedItems.forEach(item => grid.appendChild(makePreviewCard(item.name)));
   openPreview({ title: "Online", nodes: [ grid ] });
+}
+matrixOnlineFeedEl?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await retrieveThenOpenOnlinePreview();
+});
+matrixTierStatsEl?.addEventListener("click", async (e) => {
+  const pill = e.target.closest(".tier-pill");
+  if (!pill || !matrixTierStatsEl.contains(pill)) return;
+  e.preventDefault();
+  await retrieveThenOpenOnlinePreview();
 });
 
 /* --- Refresh displayed streams (timer path) --- */
