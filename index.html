@@ -854,7 +854,7 @@ previewBackdrop.addEventListener('click', (e) => { if (e.target === previewBackd
 previewBackdrop.querySelector('.preview-close').addEventListener('click', closePreview);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (matrixBackdrop.style.display==='flex') closeMatrix(); else closePreview(); } });
 
-function makePreviewCard(name) {
+function makePreviewCard(name, onClick) {
   const r = resultsCache.get(name) || {};
   const card = document.createElement('div');
   card.className = 'preview-card';
@@ -867,6 +867,10 @@ function makePreviewCard(name) {
   const title = r.title || '(no title)';
   meta.innerHTML = `<div><strong>${name}</strong></div><div>${cat}${viewers}</div><div style="color:#bdbdbf">${title}</div>`;
   card.append(img, meta);
+  if (onClick) {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => { onClick(name); closePreview(); });
+  }
   return card;
 }
 
@@ -1045,11 +1049,33 @@ function replaceMatrixTileStream(tile, nextName) {
   renderMatrixOnlineFeed();
 }
 
+function doSwap(sourceTile, targetName) {
+  if (!sourceTile || !targetName) return;
+  const currentName = sourceTile.dataset.streamer || '';
+  let sourceIndex = -1;
+  let targetIndex = -1;
+  matrixTiles.forEach((t, idx) => {
+    if (t === sourceTile) sourceIndex = idx;
+    if (String(t.dataset.streamer || '').toLowerCase() === String(targetName).toLowerCase()) targetIndex = idx;
+  });
+  if (sourceIndex === -1 || targetIndex === -1) return;
+
+  setTwitchPlayerChannel(sourceIndex, targetName);
+  setTwitchPlayerChannel(targetIndex, currentName);
+  updateTileBadge(sourceIndex, targetName);
+  updateTileBadge(targetIndex, currentName);
+
+  const swappedLive = lastLive.slice();
+  const sourceLive = swappedLive[sourceIndex];
+  swappedLive[sourceIndex] = swappedLive[targetIndex];
+  swappedLive[targetIndex] = sourceLive;
+  lastLive = swappedLive;
+
+  renderMatrixOnlineFeed();
+}
+
 function openMatrixTilePicker(tile) {
   if (!tile) return;
-  const existing = tile.querySelector('.matrix-streamer-picker');
-  if (existing) { existing.remove(); return; }
-  closeAllMatrixStreamPickers();
 
   const currentName = tile.dataset.streamer || '';
   const swapCandidates = getDisplayedMatrixStreams()
@@ -1057,74 +1083,43 @@ function openMatrixTilePicker(tile) {
   const replaceCandidates = getMatrixReplacementCandidates(currentName);
   if (!swapCandidates.length && !replaceCandidates.length) return;
 
-  const ac = new AbortController();
-  const select = document.createElement('select');
-  select.className = 'matrix-streamer-picker';
-
-  const placeholder = document.createElement('option');
-  placeholder.value = ''; placeholder.textContent = 'Select stream'; placeholder.selected = true;
-  select.appendChild(placeholder);
+  const container = document.createElement('div');
 
   if (swapCandidates.length) {
-    const group = document.createElement('optgroup');
-    group.label = '↔ Swap with';
+    const label = document.createElement('div');
+    label.textContent = '↔ Swap with';
+    label.style.color = '#3dd6f5';
+    label.style.fontSize = '12px';
+    label.style.fontWeight = '700';
+    label.style.padding = '4px 0 6px';
+    container.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'preview-grid';
     swapCandidates.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = `swap:${name}`; opt.textContent = name;
-      group.appendChild(opt);
+      grid.appendChild(makePreviewCard(name, (name) => { doSwap(tile, name); }));
     });
-    select.appendChild(group);
+    container.appendChild(grid);
   }
 
   if (replaceCandidates.length) {
-    const group = document.createElement('optgroup');
-    group.label = 'Replace with';
+    const label = document.createElement('div');
+    label.textContent = 'Replace with';
+    label.style.color = '#a3e635';
+    label.style.fontSize = '12px';
+    label.style.fontWeight = '700';
+    label.style.padding = '12px 0 6px';
+    container.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'preview-grid';
     replaceCandidates.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = `replace:${name}`; opt.textContent = name;
-      group.appendChild(opt);
+      grid.appendChild(makePreviewCard(name, (name) => { replaceMatrixTileStream(tile, name); }));
     });
-    select.appendChild(group);
+    container.appendChild(grid);
   }
 
-  select.addEventListener('change', () => {
-    ac.abort();
-    const value = select.value; if (!value) return;
-    select.remove();
-
-    if (value.startsWith('swap:')) {
-      const targetName = value.slice(5);
-      let sourceIndex = -1;
-      let targetIndex = -1;
-      matrixTiles.forEach((t, idx) => {
-        if (t === tile) sourceIndex = idx;
-        if (String(t.dataset.streamer || '').toLowerCase() === String(targetName).toLowerCase()) targetIndex = idx;
-      });
-      if (sourceIndex === -1 || targetIndex === -1) return;
-
-      setTwitchPlayerChannel(sourceIndex, targetName);
-      setTwitchPlayerChannel(targetIndex, currentName);
-      updateTileBadge(sourceIndex, targetName);
-      updateTileBadge(targetIndex, currentName);
-
-      const swappedLive = lastLive.slice();
-      const sourceLive = swappedLive[sourceIndex];
-      swappedLive[sourceIndex] = swappedLive[targetIndex];
-      swappedLive[targetIndex] = sourceLive;
-      lastLive = swappedLive;
-
-      renderMatrixOnlineFeed();
-    } else if (value.startsWith('replace:')) {
-      replaceMatrixTileStream(tile, value.slice(8));
-    }
-  }, { signal: ac.signal });
-
-  select.addEventListener('blur', () => {
-    setTimeout(() => { ac.abort(); select.remove(); }, 100);
-  }, { signal: ac.signal });
-
-  tile.appendChild(select);
-  select.focus();
+  openPreview({ title: currentName, nodes: [container] });
 }
 
 /* --- Feed --- */
