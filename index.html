@@ -1326,6 +1326,28 @@ function openMatrix() {
     matrixInitialized = true;
 
   } else {
+    const currentLive = getDisplayedMatrixStreams();
+    const candidates = lastLive.slice();
+
+    const kept = new Set(
+      currentLive
+        .filter(n => resultsCache.get(n)?.isLive)
+        .map(n => n.toLowerCase())
+    );
+
+    let ci = 0;
+    lastLive = currentLive.map(name => {
+      if (resultsCache.get(name)?.isLive) return name;
+      while (ci < candidates.length) {
+        const pick = candidates[ci++];
+        if (!kept.has(pick.toLowerCase())) {
+          kept.add(pick.toLowerCase());
+          return pick;
+        }
+      }
+      return name;
+    });
+
     /* Subsequent opens — reconcile target list against current slots.
        Preserve slots whose streamer is still desired, and only setChannel
        on slots that truly need a new streamer. */
