@@ -888,6 +888,13 @@ const qualityTimers = new Map();
 
 /* --- Player helpers --- */
 
+function applyInitialMatrixQuality(player) {
+  try {
+    if (!player || typeof player.setQuality !== 'function') return;
+    player.setQuality(matrixResolution(true));
+  } catch(e) { /* ignore */ }
+}
+
 function applyBestQuality(player, desiredQuality) {
   try {
     if (!player || typeof player.setQuality !== 'function') return;
@@ -1352,7 +1359,7 @@ function openMatrix() {
       });
       matrixPlayers.set(index, player);
       player.addEventListener(Twitch.Player.READY, () => {
-        applyBestQuality(player, matrixResolution(true));
+        applyInitialMatrixQuality(player);
       });
     });
 
