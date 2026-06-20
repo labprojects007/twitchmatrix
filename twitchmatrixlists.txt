@@ -53,6 +53,8 @@ recharging
 fido_tw
 
 [tier2]
+nahyunworld
+lychee
 kattpaccino
 pizzaprincessg
 helga
@@ -66,7 +68,6 @@ autdany
 relickris
 rellim
 arrav
-lychee
 manukiemi
 yokojpn4
 michaaam
@@ -85,7 +86,6 @@ therealshookon3
 thund3rspann3r
 stephaniequatro
 globiklive
-epicvoyages
 thecranecouple
 kiwhiskey
 igumdrop
