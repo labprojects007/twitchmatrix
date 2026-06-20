@@ -888,6 +888,39 @@ const qualityTimers = new Map();
 
 /* --- Player helpers --- */
 
+function applyBestQuality(player, desiredQuality) {
+  try {
+    if (!player || typeof player.setQuality !== 'function') return;
+
+    let qualities;
+    try {
+      qualities = player.getQualities();
+    } catch(e) {
+      player.setQuality(desiredQuality);
+      return;
+    }
+
+    if (!Array.isArray(qualities) || qualities.length === 0) {
+      player.setQuality(desiredQuality);
+      return;
+    }
+
+    const entries = qualities
+      .filter((entry) => entry && entry.name !== 'auto' && entry.name !== '' && entry.height > 0)
+      .sort((a, b) => a.height - b.height);
+
+    const targetHeight = Number.parseInt(String(desiredQuality).split('p')[0], 10);
+    const matchingEntry = entries.find((entry) => entry.height === targetHeight);
+
+    if (matchingEntry) {
+      player.setQuality(matchingEntry.name);
+      return;
+    }
+
+    player.setQuality(entries[0].name);
+  } catch(e) { /* ignore */ }
+}
+
 function applyMatrixQualityAfterDelay(index, player) {
   if (!player || typeof player.setQuality !== 'function') return;
   const existing = qualityTimers.get(index);
@@ -897,7 +930,7 @@ function applyMatrixQualityAfterDelay(index, player) {
     if (qualityTimers.get(index) === timerId) {
       qualityTimers.delete(index);
     }
-    try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore */ }
+    applyBestQuality(player, matrixResolution(true));
   }, QUALITY_DELAY_MS);
   qualityTimers.set(index, timerId);
 }
@@ -1319,7 +1352,7 @@ function openMatrix() {
       });
       matrixPlayers.set(index, player);
       player.addEventListener(Twitch.Player.READY, () => {
-        try { player.setQuality(matrixResolution(true)); } catch(e) { /* ignore if unavailable */ }
+        applyBestQuality(player, matrixResolution(true));
       });
     });
 
