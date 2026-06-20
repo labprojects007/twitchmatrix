@@ -435,6 +435,7 @@ const matrixRefreshBtn = document.getElementById("matrixRefreshBtn");
 let finalURL = "", multiURL = "";
 let lastLive = [];
 const resultsCache = new Map();
+let lastRetrieveTime = 0;
 let sessionPins = new Set();
 let sessionBlacklist = new Set();
 
@@ -719,6 +720,7 @@ async function retrieveAll(){
       statusEl.textContent = "Retrieve complete. Click Generate to pick from cache.";
       renderTierOnlineSnapshot();
       renderMatrixOnlineFeed();
+      lastRetrieveTime = Date.now();
     }catch(e){
       console.error(e);
       statusEl.textContent = "Retrieve failed (categories or status). See console for details.";
@@ -1114,8 +1116,13 @@ function doSwap(sourceTile, targetName) {
   renderMatrixOnlineFeed();
 }
 
-function openMatrixTilePicker(tile) {
+async function openMatrixTilePicker(tile) {
   if (!tile) return;
+
+  const PICKER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+  if (Date.now() - lastRetrieveTime > PICKER_CACHE_TTL_MS) {
+    await retrieveAll();
+  }
 
   const currentName = tile.dataset.streamer || '';
   const swapCandidates = getDisplayedMatrixStreams()
@@ -1494,12 +1501,12 @@ async function refreshMatrix() {
 
 /* --- Event listeners --- */
 matrixBackdrop.querySelector('.matrix-close').addEventListener('click', closeMatrix);
-matrixBody.addEventListener('click', (e) => {
+matrixBody.addEventListener('click', async (e) => {
   const nameButton = e.target.closest('.matrix-streamer-name[data-role="matrix-name-picker"]');
   if (nameButton) {
     e.stopPropagation();
     const tile = nameButton.closest('.tile');
-    openMatrixTilePicker(tile);
+    await openMatrixTilePicker(tile);
     return;
   }
   closeAllMatrixStreamPickers();
