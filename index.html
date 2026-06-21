@@ -680,20 +680,22 @@ function pruneResultsCacheToVisibleNames() {
 let retrievePromise = null;
 function setRetrievePending(isPending){ document.body.classList.toggle("retrieve-pending", !!isPending); }
 
-async function retrieveAll(){
+async function retrieveAll(full = false){
   if (retrievePromise) return retrievePromise;
   retrievePromise = (async () => {
     setRetrievePending(true);
     try{
       statusEl.textContent = "Retrieving categories (top 20) and statuses…";
       pickedEl.textContent = "";
-      let [irl, jc] = await Promise.all([ fetchCategoryTop("IRL", 20), fetchCategoryTop("Just Chatting", 20) ]);
-      const existing = new Set([ ...tier1, ...tier2, ...tier3, ...tier4 ]);
-      irl = irl.filter(n => !existing.has(n));
-      irl.forEach(n => existing.add(n));
-      jc = jc.filter(n => !existing.has(n));
-      replaceTier(4, irl);
-      replaceTier(5, jc);
+      if (full) {
+        let [irl, jc] = await Promise.all([ fetchCategoryTop("IRL", 20), fetchCategoryTop("Just Chatting", 20) ]);
+        const existing = new Set([ ...tier1, ...tier2, ...tier3, ...tier4 ]);
+        irl = irl.filter(n => !existing.has(n));
+        irl.forEach(n => existing.add(n));
+        jc = jc.filter(n => !existing.has(n));
+        replaceTier(4, irl);
+        replaceTier(5, jc);
+      }
       pruneResultsCacheToVisibleNames();
       const prevPins=new Set(sessionPins), prevBlack=new Set(sessionBlacklist);
       sessionPins = new Set(); sessionBlacklist = new Set();
@@ -702,7 +704,8 @@ async function retrieveAll(){
       prevBlack.forEach(n=>{ if(visible.has(n)) sessionBlacklist.add(n); });
       savePinBlacklistCookies();
       syncPinBlacklistButtons();
-      const allNames=[...new Set(tiers.flat())];
+      const statusTiers = full ? tiers : [tier1, tier2, tier3];
+      const allNames=[...new Set(statusTiers.flat())];
       const batchSize=getBatchSize();
       let processed=0;
       for(let i=0; i<allNames.length; ){
@@ -1121,7 +1124,7 @@ async function openMatrixTilePicker(tile) {
 
   const PICKER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
   if (Date.now() - lastRetrieveTime > PICKER_CACHE_TTL_MS) {
-    await retrieveAll();
+    await retrieveAll(false);
   }
 
   const currentName = tile.dataset.streamer || '';
@@ -1193,7 +1196,7 @@ function renderMatrixOnlineFeed() {
   matrixOnlineFeedEl.innerHTML = `<span class="matrix-online-feed-segment">${markup}</span>`;
 }
 async function retrieveThenOpenOnlinePreview() {
-  await retrieveAll();
+  await retrieveAll(false);
   const feedItems = getOnlineFeedNames();
   if (!feedItems.length) return;
   const grid = document.createElement("div");
@@ -1494,7 +1497,7 @@ function closeMatrix() {
 
 /* --- refreshMatrix — retrieve + generate + update via setChannel --- */
 async function refreshMatrix() {
-  await retrieveAll();
+  await retrieveAll(true);
   generateFromCache();
   openMatrix();
 }
@@ -1536,7 +1539,7 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   statusEl.textContent = "Idle. Grid is ready. Click 'Retrieve' to fetch categories and statuses.";
   pickedEl.textContent = "";
 
-  document.getElementById("retrieveBtn").onclick = retrieveAll;
+  document.getElementById("retrieveBtn").onclick = () => retrieveAll(true);
   document.getElementById("generateBtn").onclick = generateFromCache;
   matrixBtn.onclick = openMatrix;
   openBtn.onclick = () => finalURL && window.open(finalURL, "_blank");
