@@ -249,6 +249,10 @@
       top:6px; right:6px;
       color:#9ca3af; border-radius:4px; font-size:13px; font-weight:700; line-height:1;
     }
+    .matrix-quality-btn {
+      top:6px; left:6px;
+      color:#9ca3af; border-radius:4px; font-size:13px; font-weight:700; line-height:1;
+    }
     .matrix-blacklist.state-pinned { color:#22c55e; }
     .matrix-blacklist.state-blacklisted { color:#ff5555; }
     .matrix-streamer-name{
@@ -1339,6 +1343,15 @@ function openMatrix() {
       playerDiv.className = 'twitch-player-div';
       tile.appendChild(playerDiv);
 
+      const qualityBtn = document.createElement('button');
+      qualityBtn.type = 'button';
+      qualityBtn.className = 'matrix-tile-button matrix-quality-btn';
+      qualityBtn.textContent = '↺';
+      qualityBtn.title = 'Apply selected quality';
+      qualityBtn.onclick = () => {
+        applyBestQuality(player, matrixResolution(true));
+      };
+
       const xbtn = document.createElement('button');
       xbtn.className = 'matrix-tile-button matrix-blacklist';
       setMatrixPinStateButtonStyle(xbtn, name);
@@ -1351,7 +1364,7 @@ function openMatrix() {
       nameBadge.title = 'Change stream';
       nameBadge.dataset.role = 'matrix-name-picker';
 
-      tile.append(xbtn, nameBadge);
+      tile.append(qualityBtn, xbtn, nameBadge);
       matrixBody.appendChild(tile);
       matrixTiles.set(index, tile);
 
