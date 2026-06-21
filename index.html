@@ -722,7 +722,7 @@ async function retrieveAll(full = false){
       savePinBlacklistCookies();
       syncPinBlacklistButtons();
       const statusTiers = full ? tiers : [tier1, tier2, tier3];
-      const allNames=[...new Set(statusTiers.flat())];
+      const allNames = [...new Set([...statusTiers.flat(), ...getDisplayedMatrixStreams()])];
       const batchSize=getBatchSize();
       let processed=0;
       for(let i=0; i<allNames.length; ){
