@@ -687,7 +687,7 @@ async function fetchCategoryTop(catName, limit){
   return [];
 }
 function pruneResultsCacheToVisibleNames() {
-  const visibleNames = new Set(tiers.flat());
+  const visibleNames = new Set([...tiers.flat(), ...getDisplayedMatrixStreams()]);
   for (const name of resultsCache.keys()) {
     if (!visibleNames.has(name)) resultsCache.delete(name);
   }
