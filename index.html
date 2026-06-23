@@ -1168,14 +1168,19 @@ async function openMatrixTilePicker(tile) {
     replaceMatrixTileStream(tile, nextName);
     closePreview();
   });
+  container.appendChild(streamerInput);
 
   if (swapCandidates.length) {
     const label = document.createElement('div');
-    label.textContent = '↔ Swap with';
-    label.style.color = '#3dd6f5';
-    label.style.fontSize = '12px';
+    label.textContent = 'Swap with';
+    label.style.color = '#a3e635';
+    label.style.position = 'sticky';
+    label.style.top = '0';
+    label.style.zIndex = '2';
+    label.style.background = '#111';
+    label.style.fontSize = '16px';
     label.style.fontWeight = '700';
-    label.style.padding = '4px 0 6px';
+    label.style.padding = '8px 0 6px';
     container.appendChild(label);
 
     const grid = document.createElement('div');
@@ -1189,10 +1194,14 @@ async function openMatrixTilePicker(tile) {
   if (replaceCandidates.length) {
     const label = document.createElement('div');
     label.textContent = 'Replace with';
-    label.style.color = '#a3e635';
-    label.style.fontSize = '12px';
+    label.style.color = '#3dd6f5';
+    label.style.position = 'sticky';
+    label.style.top = '0';
+    label.style.zIndex = '2';
+    label.style.background = '#111';
+    label.style.fontSize = '16px';
     label.style.fontWeight = '700';
-    label.style.padding = '12px 0 6px';
+    label.style.padding = '8px 0 6px';
     container.appendChild(label);
 
     const grid = document.createElement('div');
@@ -1204,10 +1213,7 @@ async function openMatrixTilePicker(tile) {
   }
 
   openPreview({ title: currentName, nodes: [container] });
-  const title = previewBackdrop.querySelector('.preview-title');
-  title.classList.add('matrix-picker-title');
-  title.textContent = '';
-  title.appendChild(streamerInput);
+  previewBackdrop.querySelector('.preview-body').scrollTop = 0;
 }
 
 /* --- Feed --- */
