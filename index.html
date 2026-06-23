@@ -122,7 +122,6 @@
       gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border);
     }
     .preview-title { font-weight: 600; color: #eee; }
-    .preview-title.matrix-picker-title { flex: 1; color: var(--accent); text-align: center; }
     .preview-close { cursor: pointer; font-size: 20px; line-height: 1; background: none; border: 0; color: #ddd; }
     .preview-close:hover { color: #fff; }
     .preview-body { padding: 12px; overflow: auto; }
@@ -861,7 +860,6 @@ function initPersistence(){
 const previewBackdrop = document.getElementById('previewBackdrop');
 function openPreview({ title, nodes }) {
   const titleEl = previewBackdrop.querySelector('.preview-title');
-  titleEl.classList.remove('matrix-picker-title');
   titleEl.textContent = title || '';
   const body = previewBackdrop.querySelector('.preview-body');
   body.innerHTML = '';
@@ -871,7 +869,6 @@ function openPreview({ title, nodes }) {
 }
 function closePreview() {
   previewBackdrop.style.display = 'none';
-  previewBackdrop.querySelector('.preview-title').classList.remove('matrix-picker-title');
   previewBackdrop.querySelector('.preview-body').innerHTML = '';
   document.body.style.overflow = '';
 }
@@ -1176,12 +1173,12 @@ async function openMatrixTilePicker(tile) {
     label.textContent = 'Swap with';
     label.style.color = '#a3e635';
     label.style.position = 'sticky';
-    label.style.top = '0';
+    label.style.top = '-12px';
     label.style.zIndex = '2';
     label.style.background = '#111';
     label.style.fontSize = '14px';
     label.style.fontWeight = '700';
-    label.style.padding = '0 0 6px';
+    label.style.padding = '12px 0 6px';
     container.appendChild(label);
 
     const grid = document.createElement('div');
@@ -1197,12 +1194,12 @@ async function openMatrixTilePicker(tile) {
     label.textContent = 'Replace with';
     label.style.color = '#3dd6f5';
     label.style.position = 'sticky';
-    label.style.top = '0';
+    label.style.top = '-12px';
     label.style.zIndex = '2';
     label.style.background = '#111';
     label.style.fontSize = '14px';
     label.style.fontWeight = '700';
-    label.style.padding = '0 0 6px';
+    label.style.padding = '12px 0 6px';
     container.appendChild(label);
 
     const grid = document.createElement('div');
@@ -1214,7 +1211,6 @@ async function openMatrixTilePicker(tile) {
   }
 
   openPreview({ title: currentName, nodes: [container] });
-  previewBackdrop.querySelector('.preview-title').classList.add('matrix-picker-title');
   previewBackdrop.querySelector('.preview-body').scrollTop = 0;
 }
 
