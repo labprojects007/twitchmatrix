@@ -122,7 +122,7 @@
       gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border);
     }
     .preview-title { font-weight: 600; color: #eee; }
-    .preview-title.matrix-picker-title { flex: 1; text-align: center; }
+    .preview-title.matrix-picker-title { flex: 1; color: var(--accent); text-align: center; }
     .preview-close { cursor: pointer; font-size: 20px; line-height: 1; background: none; border: 0; color: #ddd; }
     .preview-close:hover { color: #fff; }
     .preview-body { padding: 12px; overflow: auto; }
@@ -871,6 +871,7 @@ function openPreview({ title, nodes }) {
 }
 function closePreview() {
   previewBackdrop.style.display = 'none';
+  previewBackdrop.querySelector('.preview-title').classList.remove('matrix-picker-title');
   previewBackdrop.querySelector('.preview-body').innerHTML = '';
   document.body.style.overflow = '';
 }
@@ -1178,9 +1179,9 @@ async function openMatrixTilePicker(tile) {
     label.style.top = '0';
     label.style.zIndex = '2';
     label.style.background = '#111';
-    label.style.fontSize = '16px';
+    label.style.fontSize = '14px';
     label.style.fontWeight = '700';
-    label.style.padding = '8px 0 6px';
+    label.style.padding = '0 0 6px';
     container.appendChild(label);
 
     const grid = document.createElement('div');
@@ -1199,9 +1200,9 @@ async function openMatrixTilePicker(tile) {
     label.style.top = '0';
     label.style.zIndex = '2';
     label.style.background = '#111';
-    label.style.fontSize = '16px';
+    label.style.fontSize = '14px';
     label.style.fontWeight = '700';
-    label.style.padding = '8px 0 6px';
+    label.style.padding = '0 0 6px';
     container.appendChild(label);
 
     const grid = document.createElement('div');
@@ -1213,6 +1214,7 @@ async function openMatrixTilePicker(tile) {
   }
 
   openPreview({ title: currentName, nodes: [container] });
+  previewBackdrop.querySelector('.preview-title').classList.add('matrix-picker-title');
   previewBackdrop.querySelector('.preview-body').scrollTop = 0;
 }
 
