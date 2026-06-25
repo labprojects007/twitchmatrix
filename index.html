@@ -265,6 +265,12 @@
       top:6px; left:6px;
       color:#9ca3af; border-radius:4px; font-size:13px; font-weight:700; line-height:1;
     }
+    .matrix-quality-btn.timer-pending { color: #ff9500 !important; }
+    .quality-dropdown { position: fixed; z-index: 10002; background: rgba(10,10,10,.96); border: 1px solid var(--border); border-radius: 6px; min-width: 150px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.6); }
+    .quality-dropdown-item { display: block; width: 100%; padding: 7px 12px; background: none; border: 0; color: #f5f5f7; font-size: 12px; text-align: left; cursor: pointer; white-space: nowrap; }
+    .quality-dropdown-item:hover { background: rgba(255,255,255,.1); }
+    .quality-dropdown-item.danger { color: #ff6b6b; }
+    .quality-dropdown-sep { height: 1px; background: var(--border); margin: 2px 0; }
     .matrix-blacklist.state-pinned { color:#22c55e; }
     .matrix-blacklist.state-blacklisted { color:#ff5555; }
     .matrix-streamer-name{
@@ -950,7 +956,15 @@ function applyBestQuality(player, desiredQuality) {
   } catch(e) { /* ignore */ }
 }
 
-function applyMatrixQualityAfterDelay(index, player) {
+function updateQualityBtnState(index) {
+  const tile = matrixTiles.get(index);
+  if (!tile) return;
+  const btn = tile.querySelector('.matrix-quality-btn');
+  if (!btn) return;
+  btn.classList.toggle('timer-pending', qualityTimers.has(index));
+}
+
+function applyMatrixQualityAfterDelay(index, player, delayMs = QUALITY_DELAY_MS) {
   if (!player || typeof player.setQuality !== 'function') return;
   const existing = qualityTimers.get(index);
   if (existing) clearTimeout(existing);
@@ -958,15 +972,85 @@ function applyMatrixQualityAfterDelay(index, player) {
   const timerId = setTimeout(() => {
     if (qualityTimers.get(index) === timerId) {
       qualityTimers.delete(index);
+      updateQualityBtnState(index);
+      applyBestQuality(player, matrixResolution(true));
     }
-    applyBestQuality(player, matrixResolution(true));
-  }, QUALITY_DELAY_MS);
+  }, delayMs);
   qualityTimers.set(index, timerId);
+  updateQualityBtnState(index);
 }
 
 function clearAllQualityTimers() {
   qualityTimers.forEach((timerId) => clearTimeout(timerId));
   qualityTimers.clear();
+  matrixTiles.forEach((_, index) => updateQualityBtnState(index));
+}
+
+function closeQualityDropdowns() {
+  document.querySelectorAll('.quality-dropdown').forEach((dropdown) => dropdown.remove());
+}
+
+function openQualityDropdown(index, player, btn) {
+  closeQualityDropdowns();
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'quality-dropdown';
+
+  const addItem = (label, action, className = '') => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = `quality-dropdown-item${className ? ` ${className}` : ''}`;
+    item.textContent = label;
+    item.onclick = (e) => {
+      e.stopPropagation();
+      action();
+      closeQualityDropdowns();
+    };
+    dropdown.appendChild(item);
+  };
+
+  const addSep = () => {
+    const sep = document.createElement('div');
+    sep.className = 'quality-dropdown-sep';
+    dropdown.appendChild(sep);
+  };
+
+  const cancelTimer = () => {
+    const existing = qualityTimers.get(index);
+    if (existing) clearTimeout(existing);
+    qualityTimers.delete(index);
+    updateQualityBtnState(index);
+  };
+
+  addItem('Apply now', () => {
+    cancelTimer();
+    applyBestQuality(player, matrixResolution(true));
+  });
+
+  if (qualityTimers.has(index)) {
+    addSep();
+    addItem('Cancel timer', cancelTimer, 'danger');
+  }
+
+  addSep();
+  [
+    ['15s set quality', 15000],
+    ['30s set quality', 30000],
+    ['2m set quality', 120000],
+    ['3m set quality', 180000],
+    ['5m set quality', 300000],
+  ].forEach(([label, ms]) => {
+    addItem(label, () => applyMatrixQualityAfterDelay(index, player, ms));
+  });
+
+  const rect = btn.getBoundingClientRect();
+  dropdown.style.top = `${rect.bottom + 4}px`;
+  dropdown.style.left = `${rect.left}px`;
+  document.body.appendChild(dropdown);
+
+  setTimeout(() => {
+    document.addEventListener('click', closeQualityDropdowns, { once: true });
+  }, 0);
 }
 
 function setTwitchPlayerChannel(index, channelName) {
@@ -1386,15 +1470,14 @@ function openMatrix() {
       qualityBtn.className = 'matrix-tile-button matrix-quality-btn';
       qualityBtn.textContent = '↺';
       qualityBtn.title = 'Apply selected quality';
-      qualityBtn.onclick = () => {
-        const existing = qualityTimers.get(index);
-        if (existing) {
-          clearTimeout(existing);
-          qualityTimers.delete(index);
+      qualityBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (document.querySelector('.quality-dropdown')) {
+          closeQualityDropdowns();
           return;
         }
 
-        applyBestQuality(player, matrixResolution(true));
+        openQualityDropdown(index, player, qualityBtn);
       };
 
       const xbtn = document.createElement('button');
@@ -1545,6 +1628,7 @@ function openMatrix() {
 /* --- closeMatrix — browser refresh for full embed/resource cleanup --- */
 function closeMatrix() {
   closeAllMatrixStreamPickers();
+  closeQualityDropdowns();
   stopMatrixRefreshInterval();
   clearAllQualityTimers();
   matrixCountdownSeconds = 0;
