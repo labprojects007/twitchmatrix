@@ -1387,6 +1387,13 @@ function openMatrix() {
       qualityBtn.textContent = '↺';
       qualityBtn.title = 'Apply selected quality';
       qualityBtn.onclick = () => {
+        const existing = qualityTimers.get(index);
+        if (existing) {
+          clearTimeout(existing);
+          qualityTimers.delete(index);
+          return;
+        }
+
         applyBestQuality(player, matrixResolution(true));
       };
 
