@@ -252,10 +252,10 @@
     .matrix-tile-button {
       position: absolute;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(0,0,0,.60);
+      background: transparent;
       border: 0; cursor: pointer; z-index: 2;
     }
-    .matrix-tile-button:hover { background: rgba(0,0,0,.82); }
+    .matrix-tile-button:hover { background: transparent; }
     .matrix-tile-button::before,
     .matrix-streamer-name::before {
       content: ""; position: absolute; inset: -10px;
@@ -292,7 +292,7 @@
       padding: 0 10px;
       max-width: calc(100% - 112px); /* leave 52px gap on each side for corner buttons */
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      background: rgba(0,0,0,.72); color: #fff;
+      background: transparent; color: #fff;
       border-radius: 0 0 8px 8px;   /* flat top, rounds bottom corners only */
       font-size: 12px; font-weight: 600;
       pointer-events: auto; border: 1px solid transparent; cursor: pointer;
