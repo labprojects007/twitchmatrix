@@ -266,7 +266,7 @@
       top: 0; left: 0;
       width: 52px; height: 52px;
       border-radius: 0 0 12px 0;
-      font-size: 18px; font-weight: 700;
+      font-size: 12px; font-weight: 700;
       color: #9ca3af;
       padding: 0;
     }
@@ -288,7 +288,7 @@
       top: 0; right: 0;
       width: 52px; height: 52px;
       border-radius: 0 0 0 12px;
-      font-size: 15px; font-weight: 700;
+      font-size: 10px; font-weight: 700;
       color: #9ca3af;
       padding: 0;
     }
@@ -1177,7 +1177,7 @@ function setMatrixPinStateButtonStyle(btn, name) {
   if (sessionBlacklist.has(name)) {
     btn.classList.add('state-blacklisted'); btn.textContent = '✖'; btn.title = 'Blacklisted (click to pin)'; return;
   }
-  btn.textContent = ''; btn.title = 'Neutral (click to blacklist)';
+  btn.textContent = '-'; btn.title = 'Neutral (click to blacklist)';
 }
 
 function cycleMatrixTilePinState(tile, btn) {
