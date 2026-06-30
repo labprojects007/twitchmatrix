@@ -256,9 +256,22 @@
       border: 0; cursor: pointer; z-index: 2;
     }
     .matrix-tile-button:hover { background: transparent; }
-    .matrix-tile-button::before,
+    .matrix-quality-btn::before {
+      content: ""; position: absolute;
+      top: 0; left: 0;
+      width: 15%; height: 20%;
+      background: transparent;
+    }
     .matrix-streamer-name::before {
-      content: ""; position: absolute; inset: -10px;
+      content: ""; position: absolute;
+      top: 0; left: 15%;
+      width: 70%; height: 20%;
+      background: transparent;
+    }
+    .matrix-blacklist::before {
+      content: ""; position: absolute;
+      top: 0; left: 85%;
+      width: 15%; height: 20%;
       background: transparent;
     }
 
