@@ -259,14 +259,23 @@
     .matrix-hit-zone {
       position: absolute;
       top: 0;
-      height: 20%;
+      height: 30%;
       background: transparent;
       z-index: 3;
       cursor: pointer;
     }
-    .matrix-hit-zone.zone-quality { left: 0; width: 15%; }
-    .matrix-hit-zone.zone-name { left: 15%; width: 70%; }
-    .matrix-hit-zone.zone-pin { left: 85%; width: 15%; }
+    .matrix-hit-zone.zone-quality { left: 0; width: 20%; }
+    .matrix-hit-zone.zone-name { left: 20%; width: 60%; }
+    .matrix-hit-zone.zone-pin { left: 80%; width: 20%; }
+    .matrix-dead-zone {
+      position: absolute;
+      top: 30%;
+      left: 0;
+      width: 100%;
+      height: 50%;
+      background: transparent;
+      z-index: 3;
+    }
 
     .matrix-quality-btn {
       top: 0; left: 0;
@@ -1545,8 +1554,12 @@ function openMatrix() {
       pinZone.className = 'matrix-hit-zone zone-pin';
       pinZone.onclick = (e) => { xbtn.click(); };
 
+      const deadZone = document.createElement('div');
+      deadZone.className = 'matrix-dead-zone';
+      deadZone.onclick = (e) => { e.stopPropagation(); e.preventDefault(); };
+
       tile.append(qualityBtn, xbtn, nameBadge);
-      tile.append(qualityZone, nameZone, pinZone);
+      tile.append(qualityZone, nameZone, pinZone, deadZone);
       matrixBody.appendChild(tile);
       matrixTiles.set(index, tile);
 
