@@ -1544,15 +1544,15 @@ function openMatrix() {
 
       const qualityZone = document.createElement('div');
       qualityZone.className = 'matrix-hit-zone zone-quality';
-      qualityZone.onclick = (e) => { qualityBtn.click(); };
+      qualityZone.onclick = (e) => { e.stopPropagation(); qualityBtn.click(); };
 
       const nameZone = document.createElement('div');
       nameZone.className = 'matrix-hit-zone zone-name';
-      nameZone.onclick = (e) => { nameBadge.click(); };
+      nameZone.onclick = (e) => { e.stopPropagation(); nameBadge.click(); };
 
       const pinZone = document.createElement('div');
       pinZone.className = 'matrix-hit-zone zone-pin';
-      pinZone.onclick = (e) => { xbtn.click(); };
+      pinZone.onclick = (e) => { e.stopPropagation(); xbtn.click(); };
 
       const deadZone = document.createElement('div');
       deadZone.className = 'matrix-dead-zone';
