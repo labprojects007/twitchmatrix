@@ -256,24 +256,17 @@
       border: 0; cursor: pointer; z-index: 2;
     }
     .matrix-tile-button:hover { background: transparent; }
-    .matrix-quality-btn::before {
-      content: ""; position: absolute;
-      top: 0; left: 0;
-      width: 15%; height: 20%;
+    .matrix-hit-zone {
+      position: absolute;
+      top: 0;
+      height: 20%;
       background: transparent;
+      z-index: 3;
+      cursor: pointer;
     }
-    .matrix-streamer-name::before {
-      content: ""; position: absolute;
-      top: 0; left: 15%;
-      width: 70%; height: 20%;
-      background: transparent;
-    }
-    .matrix-blacklist::before {
-      content: ""; position: absolute;
-      top: 0; left: 85%;
-      width: 15%; height: 20%;
-      background: transparent;
-    }
+    .matrix-hit-zone.zone-quality { left: 0; width: 15%; }
+    .matrix-hit-zone.zone-name { left: 15%; width: 70%; }
+    .matrix-hit-zone.zone-pin { left: 85%; width: 15%; }
 
     .matrix-quality-btn {
       top: 0; left: 0;
@@ -1540,7 +1533,20 @@ function openMatrix() {
       nameBadge.title = 'Change stream';
       nameBadge.dataset.role = 'matrix-name-picker';
 
+      const qualityZone = document.createElement('div');
+      qualityZone.className = 'matrix-hit-zone zone-quality';
+      qualityZone.onclick = (e) => { qualityBtn.click(); };
+
+      const nameZone = document.createElement('div');
+      nameZone.className = 'matrix-hit-zone zone-name';
+      nameZone.onclick = (e) => { nameBadge.click(); };
+
+      const pinZone = document.createElement('div');
+      pinZone.className = 'matrix-hit-zone zone-pin';
+      pinZone.onclick = (e) => { xbtn.click(); };
+
       tile.append(qualityBtn, xbtn, nameBadge);
+      tile.append(qualityZone, nameZone, pinZone);
       matrixBody.appendChild(tile);
       matrixTiles.set(index, tile);
 
