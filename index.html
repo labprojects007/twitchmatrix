@@ -234,8 +234,9 @@
       overflow:auto;
       padding:2px;
       display:grid;
-      gap:1px;
-      justify-content:center;
+      column-gap:1px;
+      row-gap:1px;
+      justify-content:start;
       align-content:start;
       background:#000;
     }
@@ -1410,38 +1411,43 @@ async function refreshDisplayedMatrixStreams() {
 }
 
 /* --- Layout --- */
+const WIDTH_FILL_AREA_TOLERANCE = 0.02;
+
 function optimalCols(n, W, H, gap) {
-  let best = {cols: 1, area: -1, overflow: Infinity};
+  let best = null;
+  let bestWidthBound = null;
+
   for (let cols = 1; cols <= n; cols++) {
     const rows = Math.ceil(n / cols);
     const totalGapW = gap * (cols - 1);
     const totalGapH = gap * (rows - 1);
-    const tileW = Math.max(0, (W - totalGapW) / cols);
-    const tileH = tileW * 9 / 16;
-    const gridH = rows * tileH + totalGapH;
-    const area = tileW * tileH * (n / (rows * cols));
-    const overflow = Math.max(0, gridH - H);
-    const fits = overflow <= H * 0.05;
-    if (fits && (area > best.area || (area === best.area && cols > best.cols))) {
-      best = {cols, area, overflow};
+
+    const tileWWidthOnly = Math.max(0, (W - totalGapW) / cols);
+    const tileHWidthOnly = tileWWidthOnly * 9 / 16;
+    const areaWidthOnly = tileWWidthOnly * tileHWidthOnly * (n / (rows * cols));
+
+    const tileWfromW = Math.floor(tileWWidthOnly);
+    const tileHfromH = Math.floor(Math.max(0, (H - totalGapH) / rows));
+    const tileWfromH = Math.floor(tileHfromH * 16 / 9);
+    const tileWFinal = Math.min(tileWfromW, tileWfromH);
+    const tileHFinal = tileWFinal * 9 / 16;
+    const areaFinal = tileWFinal * tileHFinal * (n / (rows * cols));
+    const candidate = { cols, areaFinal, areaWidthOnly, widthBound: tileWfromW <= tileWfromH };
+
+    if (!best || areaFinal > best.areaFinal || (areaFinal === best.areaFinal && cols > best.cols)) {
+      best = candidate;
+    }
+
+    if (candidate.widthBound && (!bestWidthBound || areaFinal > bestWidthBound.areaFinal || (areaFinal === bestWidthBound.areaFinal && cols > bestWidthBound.cols))) {
+      bestWidthBound = candidate;
     }
   }
-  if (best.area >= 0) return best.cols;
-  let minOverflow = Infinity, bestCols = 1, bestArea = -1;
-  for (let cols = 1; cols <= n; cols++) {
-    const rows = Math.ceil(n / cols);
-    const totalGapW = gap * (cols - 1);
-    const totalGapH = gap * (rows - 1);
-    const tileW = Math.max(0, (W - totalGapW) / cols);
-    const tileH = tileW * 9 / 16;
-    const gridH = rows * tileH + totalGapH;
-    const overflow = Math.max(0, gridH - H);
-    const area = tileW * tileH * (n / (rows * cols));
-    if (overflow < minOverflow || (overflow === minOverflow && area > bestArea)) {
-      minOverflow = overflow; bestArea = area; bestCols = cols;
-    }
+
+  if (bestWidthBound && bestWidthBound.areaFinal >= best.areaFinal * (1 - WIDTH_FILL_AREA_TOLERANCE)) {
+    return bestWidthBound.cols;
   }
-  return bestCols;
+
+  return best.cols;
 }
 
 function applyMatrixLayout() {
@@ -1450,13 +1456,20 @@ function applyMatrixLayout() {
   Array.from(tiles).forEach(t => { t.style.gridColumn = ''; t.style.gridRow = ''; });
   matrixBody.style.gridTemplateColumns = '';
   matrixBody.style.gridTemplateRows = '';
+  matrixBody.style.paddingLeft = '';
+  matrixBody.style.paddingRight = '';
   const gap = 1;
+  const matrixStyle = getComputedStyle(matrixBody);
+  const basePaddingLeft = parseFloat(matrixStyle.paddingLeft) || 0;
+  const basePaddingRight = parseFloat(matrixStyle.paddingRight) || 0;
+  const basePaddingTop = parseFloat(matrixStyle.paddingTop) || 0;
+  const basePaddingBottom = parseFloat(matrixStyle.paddingBottom) || 0;
   const rect = matrixBody.getBoundingClientRect();
-  let width = rect.width;
-  let height = rect.height;
+  let width = Math.max(0, rect.width - basePaddingLeft - basePaddingRight);
+  let height = Math.max(0, rect.height - basePaddingTop - basePaddingBottom);
   if (!width || !height) {
-    width = window.innerWidth;
-    height = Math.max(0, window.innerHeight - (matrixHeader.offsetHeight || 42));
+    width = Math.max(0, window.innerWidth - basePaddingLeft - basePaddingRight);
+    height = Math.max(0, window.innerHeight - (matrixHeader.offsetHeight || 42) - basePaddingTop - basePaddingBottom);
   }
 
   const cols = optimalCols(n, width, height, gap);
@@ -1473,7 +1486,12 @@ function applyMatrixLayout() {
   // Use whichever constraint is tighter
   const tileW = Math.min(tileWfromW, tileWfromH);
   const tileH = Math.floor(tileW * 9 / 16);
-  matrixBody.style.gap = `${gap}px`;
+  const gridW = cols * tileW + gap * (cols - 1);
+  const horizontalMargin = Math.max(0, Math.floor((width - gridW) / 2));
+  matrixBody.style.columnGap = `${gap}px`;
+  matrixBody.style.rowGap = `${gap}px`;
+  matrixBody.style.paddingLeft = `${basePaddingLeft + horizontalMargin}px`;
+  matrixBody.style.paddingRight = `${basePaddingRight + Math.max(0, width - gridW - horizontalMargin)}px`;
   matrixBody.style.gridTemplateColumns = `repeat(${cols}, ${tileW}px)`;
   matrixBody.style.gridTemplateRows = `repeat(${rows}, ${tileH}px)`;
   Array.from(matrixBody.children).forEach(t => {
