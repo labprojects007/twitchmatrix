@@ -1505,14 +1505,22 @@ function applyMatrixLayout() {
    First call: creates Twitch.Player instances and DOM tiles.
    Subsequent calls (refresh): updates existing players via setChannel.
    Players are NEVER destroyed. --------------------------------------- */
-const MATRIX_OPEN_SCROLL_OFFSET_PX = 20;
+const MATRIX_OPEN_SCROLL_OFFSET_PX = 80;
 
 function scrollMainPageBeforeMatrixOpen() {
-  if (window.scrollY <= 0) return;
-  window.scrollBy({ top: -MATRIX_OPEN_SCROLL_OFFSET_PX, left: 0, behavior: 'auto' });
+  const scrollingEl = document.scrollingElement || document.documentElement || document.body;
+  const currentTop = Math.max(window.scrollY || 0, scrollingEl?.scrollTop || 0);
+  if (currentTop <= 0) return Promise.resolve();
+
+  const nextTop = Math.max(0, currentTop - MATRIX_OPEN_SCROLL_OFFSET_PX);
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  if (scrollingEl) scrollingEl.scrollTop = nextTop;
+  window.scrollTo({ top: nextTop, left: 0, behavior: 'auto' });
+
+  return new Promise(resolve => requestAnimationFrame(resolve));
 }
 
-function openMatrix() {
+async function openMatrix() {
   if (!lastLive.length) return;
 
   if (!STATIC_HOST) {
@@ -1520,7 +1528,7 @@ function openMatrix() {
     return;
   }
 
-  scrollMainPageBeforeMatrixOpen();
+  await scrollMainPageBeforeMatrixOpen();
 
   matrixBackdrop.style.display = 'flex';
   document.body.style.overflow = 'hidden';
