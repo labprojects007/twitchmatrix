@@ -1505,6 +1505,13 @@ function applyMatrixLayout() {
    First call: creates Twitch.Player instances and DOM tiles.
    Subsequent calls (refresh): updates existing players via setChannel.
    Players are NEVER destroyed. --------------------------------------- */
+const MATRIX_OPEN_SCROLL_OFFSET_PX = 20;
+
+function scrollMainPageBeforeMatrixOpen() {
+  if (window.scrollY <= 0) return;
+  window.scrollBy({ top: -MATRIX_OPEN_SCROLL_OFFSET_PX, left: 0, behavior: 'auto' });
+}
+
 function openMatrix() {
   if (!lastLive.length) return;
 
@@ -1512,6 +1519,8 @@ function openMatrix() {
     console.error('No hostname — cannot embed Twitch');
     return;
   }
+
+  scrollMainPageBeforeMatrixOpen();
 
   matrixBackdrop.style.display = 'flex';
   document.body.style.overflow = 'hidden';
