@@ -163,8 +163,10 @@
       align-items:center;
       justify-content:flex-start;
       gap:8px;
-      padding:1px 12px;
-      background:rgba(10,10,10,.82);
+      --matrix-grid-margin-left:0px;
+      --matrix-grid-margin-right:0px;
+      padding:3px calc(12px + var(--matrix-grid-margin-right)) 3px calc(12px + var(--matrix-grid-margin-left));
+      background:#000;
       border-bottom:1px solid rgba(17,17,17,.82);
       color:#ddd;
       min-height:0;
@@ -1467,6 +1469,11 @@ function optimalCols(n, W, H, gap) {
   return best.cols;
 }
 
+function syncMatrixHeaderMargins(left, right) {
+  matrixHeader.style.setProperty('--matrix-grid-margin-left', `${Math.max(0, Math.round(left))}px`);
+  matrixHeader.style.setProperty('--matrix-grid-margin-right', `${Math.max(0, Math.round(right))}px`);
+}
+
 function applyMatrixLayout() {
   const n = Math.max(1, lastLive.length);
   const tiles = matrixBody.children;
@@ -1505,10 +1512,12 @@ function applyMatrixLayout() {
   const tileH = Math.floor(tileW * 9 / 16);
   const gridW = cols * tileW + gap * (cols - 1);
   const horizontalMargin = Math.max(0, Math.floor((width - gridW) / 2));
+  const trailingMargin = Math.max(0, width - gridW - horizontalMargin);
+  syncMatrixHeaderMargins(basePaddingLeft + horizontalMargin, basePaddingRight + trailingMargin);
   matrixBody.style.columnGap = `${gap}px`;
   matrixBody.style.rowGap = `${gap}px`;
   matrixBody.style.paddingLeft = `${basePaddingLeft + horizontalMargin}px`;
-  matrixBody.style.paddingRight = `${basePaddingRight + Math.max(0, width - gridW - horizontalMargin)}px`;
+  matrixBody.style.paddingRight = `${basePaddingRight + trailingMargin}px`;
   matrixBody.style.gridTemplateColumns = `repeat(${cols}, ${tileW}px)`;
   matrixBody.style.gridTemplateRows = `repeat(${rows}, ${tileH}px)`;
   Array.from(matrixBody.children).forEach(t => {
