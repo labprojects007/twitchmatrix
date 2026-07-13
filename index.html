@@ -1714,17 +1714,9 @@ function openMatrix() {
       observer.disconnect();
       applyMatrixLayout();
 
-      if (matrixResizeHandler) {
-        window.removeEventListener('resize', matrixResizeHandler);
-        if (window.visualViewport) {
-          window.visualViewport.removeEventListener('resize', matrixResizeHandler);
-        }
-      }
+      if (matrixResizeHandler) window.removeEventListener('resize', matrixResizeHandler);
       matrixResizeHandler = applyMatrixLayout;
       window.addEventListener('resize', matrixResizeHandler, { passive: true });
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', matrixResizeHandler, { passive: true });
-      }
     }
   });
   ro.observe(matrixBody);
