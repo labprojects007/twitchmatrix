@@ -144,7 +144,11 @@
 
     /* Matrix overlay */
     .matrix-backdrop {
-      position: fixed; inset: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100dvh;
       background: #000;
       display: none;
       align-items: stretch; justify-content: stretch;
@@ -983,7 +987,6 @@ let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
 const qualityTimers = new Map();
-
 /* --- Player helpers --- */
 
 function applyInitialMatrixQuality(player) {
