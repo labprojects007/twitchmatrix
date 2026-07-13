@@ -144,37 +144,28 @@
 
     /* Matrix overlay */
     .matrix-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100dvh;
-      background: #000;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.9);
       display: none;
       align-items: stretch; justify-content: stretch;
       z-index: 10000;
     }
     .matrix-modal {
       position: absolute; inset: 0;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
       background: #000;
     }
     .matrix-header {
       position:relative;
-      flex:0 0 auto;
       display:flex;
       align-items:center;
       justify-content:flex-start;
       gap:8px;
-      --matrix-grid-margin-left:0px;
-      --matrix-grid-margin-right:0px;
-      padding:3px calc(12px + var(--matrix-grid-margin-right)) 3px calc(12px + var(--matrix-grid-margin-left));
-      background:#000;
-      border-bottom:1px solid rgba(17,17,17,.82);
+      padding:10px 12px;
+      background:#0a0a0a;
+      border-bottom:1px solid #111;
       color:#ddd;
-      min-height:0;
-      z-index:10;
+      min-height:42px;
     }
     .matrix-close { cursor:pointer; font-size:20px; line-height:1; background:none; border:0; color:#ddd; margin-left:auto; }
     .matrix-close:hover { color:#fff; }
@@ -239,11 +230,9 @@
       justify-content:center;
     }
     .matrix-body {
-      position:relative;
-      flex:1 1 auto;
-      min-height:0;
+      flex:1;
       overflow:auto;
-      padding:0;
+      padding:2px;
       display:grid;
       column-gap:1px;
       row-gap:1px;
@@ -987,6 +976,7 @@ let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
 const qualityTimers = new Map();
+
 /* --- Player helpers --- */
 
 function applyInitialMatrixQuality(player) {
@@ -1472,11 +1462,6 @@ function optimalCols(n, W, H, gap) {
   return best.cols;
 }
 
-function syncMatrixHeaderMargins(left, right) {
-  matrixHeader.style.setProperty('--matrix-grid-margin-left', `${Math.max(0, Math.round(left))}px`);
-  matrixHeader.style.setProperty('--matrix-grid-margin-right', `${Math.max(0, Math.round(right))}px`);
-}
-
 function applyMatrixLayout() {
   const n = Math.max(1, lastLive.length);
   const tiles = matrixBody.children;
@@ -1496,7 +1481,7 @@ function applyMatrixLayout() {
   let height = Math.max(0, rect.height - basePaddingTop - basePaddingBottom);
   if (!width || !height) {
     width = Math.max(0, window.innerWidth - basePaddingLeft - basePaddingRight);
-    height = Math.max(0, window.innerHeight - basePaddingTop - basePaddingBottom);
+    height = Math.max(0, window.innerHeight - (matrixHeader.offsetHeight || 42) - basePaddingTop - basePaddingBottom);
   }
 
   const cols = optimalCols(n, width, height, gap);
@@ -1515,12 +1500,10 @@ function applyMatrixLayout() {
   const tileH = Math.floor(tileW * 9 / 16);
   const gridW = cols * tileW + gap * (cols - 1);
   const horizontalMargin = Math.max(0, Math.floor((width - gridW) / 2));
-  const trailingMargin = Math.max(0, width - gridW - horizontalMargin);
-  syncMatrixHeaderMargins(basePaddingLeft + horizontalMargin, basePaddingRight + trailingMargin);
   matrixBody.style.columnGap = `${gap}px`;
   matrixBody.style.rowGap = `${gap}px`;
   matrixBody.style.paddingLeft = `${basePaddingLeft + horizontalMargin}px`;
-  matrixBody.style.paddingRight = `${basePaddingRight + trailingMargin}px`;
+  matrixBody.style.paddingRight = `${basePaddingRight + Math.max(0, width - gridW - horizontalMargin)}px`;
   matrixBody.style.gridTemplateColumns = `repeat(${cols}, ${tileW}px)`;
   matrixBody.style.gridTemplateRows = `repeat(${rows}, ${tileH}px)`;
   Array.from(matrixBody.children).forEach(t => {
