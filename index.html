@@ -144,8 +144,12 @@
 
     /* Matrix overlay */
     .matrix-backdrop {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.9);
+      position: fixed;
+      top: var(--matrix-viewport-top, 0px);
+      left: var(--matrix-viewport-left, 0px);
+      width: var(--matrix-viewport-width, 100vw);
+      height: var(--matrix-viewport-height, 100vh);
+      background: #000;
       display: none;
       align-items: stretch; justify-content: stretch;
       z-index: 10000;
@@ -981,6 +985,41 @@ let matrixRefreshIntervalId = null;
 let matrixRefreshInProgress = false;
 let matrixCountdownSeconds = 0;
 let matrixResizeHandler = null;
+let matrixViewportHandler = null;
+
+function syncMatrixViewportBounds() {
+  const viewport = window.visualViewport;
+  const top = viewport?.offsetTop || 0;
+  const left = viewport?.offsetLeft || 0;
+  const width = viewport?.width || window.innerWidth;
+  const height = viewport?.height || window.innerHeight;
+  matrixBackdrop.style.setProperty('--matrix-viewport-top', `${top}px`);
+  matrixBackdrop.style.setProperty('--matrix-viewport-left', `${left}px`);
+  matrixBackdrop.style.setProperty('--matrix-viewport-width', `${width}px`);
+  matrixBackdrop.style.setProperty('--matrix-viewport-height', `${height}px`);
+}
+
+function startMatrixViewportSync() {
+  syncMatrixViewportBounds();
+  if (matrixViewportHandler) return;
+  matrixViewportHandler = () => {
+    syncMatrixViewportBounds();
+    applyMatrixLayout();
+  };
+  window.addEventListener('resize', matrixViewportHandler, { passive: true });
+  window.addEventListener('scroll', matrixViewportHandler, { passive: true });
+  window.visualViewport?.addEventListener('resize', matrixViewportHandler, { passive: true });
+  window.visualViewport?.addEventListener('scroll', matrixViewportHandler, { passive: true });
+}
+
+function stopMatrixViewportSync() {
+  if (!matrixViewportHandler) return;
+  window.removeEventListener('resize', matrixViewportHandler);
+  window.removeEventListener('scroll', matrixViewportHandler);
+  window.visualViewport?.removeEventListener('resize', matrixViewportHandler);
+  window.visualViewport?.removeEventListener('scroll', matrixViewportHandler);
+  matrixViewportHandler = null;
+}
 const qualityTimers = new Map();
 
 /* --- Player helpers --- */
@@ -1531,6 +1570,7 @@ function openMatrix() {
     return;
   }
 
+  startMatrixViewportSync();
   matrixBackdrop.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
@@ -1737,6 +1777,8 @@ function closeMatrix() {
   matrixCountdownSeconds = 0;
   matrixRefreshCountdownEl.textContent = '';
 
+  stopMatrixViewportSync();
+  document.body.style.overflow = '';
   window.location.reload();
 }
 
