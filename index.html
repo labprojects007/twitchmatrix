@@ -145,27 +145,29 @@
     /* Matrix overlay */
     .matrix-backdrop {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,.9);
+      background: #000;
       display: none;
       align-items: stretch; justify-content: stretch;
       z-index: 10000;
     }
     .matrix-modal {
       position: absolute; inset: 0;
-      display: flex; flex-direction: column;
+      display: block;
       background: #000;
     }
     .matrix-header {
-      position:relative;
+      position:absolute;
+      top:0; left:0; right:0;
       display:flex;
       align-items:center;
       justify-content:flex-start;
       gap:8px;
       padding:10px 12px;
-      background:#0a0a0a;
-      border-bottom:1px solid #111;
+      background:rgba(10,10,10,.82);
+      border-bottom:1px solid rgba(17,17,17,.82);
       color:#ddd;
       min-height:42px;
+      z-index:10;
     }
     .matrix-close { cursor:pointer; font-size:20px; line-height:1; background:none; border:0; color:#ddd; margin-left:auto; }
     .matrix-close:hover { color:#fff; }
@@ -230,9 +232,10 @@
       justify-content:center;
     }
     .matrix-body {
-      flex:1;
+      position:absolute;
+      inset:0;
       overflow:auto;
-      padding:2px;
+      padding:0;
       display:grid;
       column-gap:1px;
       row-gap:1px;
@@ -1481,7 +1484,7 @@ function applyMatrixLayout() {
   let height = Math.max(0, rect.height - basePaddingTop - basePaddingBottom);
   if (!width || !height) {
     width = Math.max(0, window.innerWidth - basePaddingLeft - basePaddingRight);
-    height = Math.max(0, window.innerHeight - (matrixHeader.offsetHeight || 42) - basePaddingTop - basePaddingBottom);
+    height = Math.max(0, window.innerHeight - basePaddingTop - basePaddingBottom);
   }
 
   const cols = optimalCols(n, width, height, gap);
