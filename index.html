@@ -730,6 +730,9 @@ async function gqlSingle(op){
   if(!res.ok) throw new Error("HTTP "+res.status);
   return res.json();
 }
+const CATEGORY_FETCH_LIMIT = 20;
+const CATEGORY_DISPLAY_LIMIT = 7;
+
 async function fetchCategoryTop(catName, limit){
   const tryNames = catName==="IRL" ? ["IRL","Travel & Outdoors"] : [catName];
   for(const nm of tryNames){
@@ -758,10 +761,10 @@ async function retrieveAll(full = false){
   retrievePromise = (async () => {
     setRetrievePending(true);
     try{
-      statusEl.textContent = "Retrieving categories (top 20) and statuses…";
+      statusEl.textContent = `Retrieving categories (top ${CATEGORY_FETCH_LIMIT}) and statuses…`;
       pickedEl.textContent = "";
       if (full) {
-        let [irl, jc] = await Promise.all([ fetchCategoryTop("IRL", 20), fetchCategoryTop("Just Chatting", 20) ]);
+        let [irl, jc] = await Promise.all([ fetchCategoryTop("IRL", CATEGORY_FETCH_LIMIT), fetchCategoryTop("Just Chatting", CATEGORY_FETCH_LIMIT) ]);
         const existing = new Set([ ...tier1, ...tier2, ...tier3, ...tier4 ]);
         irl = irl.filter(n => !existing.has(n));
         irl.forEach(n => existing.add(n));
@@ -794,7 +797,10 @@ async function retrieveAll(full = false){
         finally{ setWorking(chunk, false); }
       }
       if (!full) {
-        const irlNames = await fetchCategoryTop("IRL", 7);
+        const existingNames = new Set([ ...tier1, ...tier2, ...tier3 ]);
+        const irlNames = (await fetchCategoryTop("IRL", CATEGORY_FETCH_LIMIT))
+          .filter(n => !existingNames.has(n))
+          .slice(0, CATEGORY_DISPLAY_LIMIT);
         replaceTier(4, irlNames);
         if (irlNames.length) {
           const fetched = await fetchBatch(irlNames);
