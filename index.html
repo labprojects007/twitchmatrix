@@ -737,6 +737,7 @@ async function fetchCategoryTop(catName, limit){
       const data = await gqlSingle({ operationName:"CategoryTop", query:categoryTopQuery, variables:{ name:nm, limit } });
       const edges = data?.[0]?.data?.game?.streams?.edges || [];
       const logins = edges.map(e=>e?.node?.broadcaster?.login).filter(Boolean);
+      logins.viewersByLogin = new Map(edges.map(e => [e?.node?.broadcaster?.login, e?.node?.viewersCount]).filter(([login]) => login));
       if(logins.length) return logins;
     }catch(e){ /* try next */ }
   }
@@ -792,6 +793,14 @@ async function retrieveAll(full = false){
           renderTierOnlineSnapshot();
         }catch(e){ console.error("Batch error", e); markError(chunk); }
         finally{ setWorking(chunk, false); }
+      }
+      if (!full) {
+        const irlNames = await fetchCategoryTop("IRL", 7);
+        replaceTier(4, irlNames);
+        irlNames.forEach(name => {
+          resultsCache.set(name, { isLive: true, category: "IRL", viewers: irlNames.viewersByLogin?.get(name) ?? null, title: null });
+          paintLabel(name, resultsCache.get(name));
+        });
       }
       statusEl.textContent = "Retrieve complete. Click Generate to pick from cache.";
       renderTierOnlineSnapshot();
@@ -1353,7 +1362,7 @@ async function openMatrixTilePicker(tile) {
 function getOnlineFeedNames() {
   const hidden = new Set(lastLive || []);
   const names = [];
-  for(let i=0; i<3; i++){
+  for(const i of [0, 1, 2, 4]){
     for(const name of (tiers[i] || [])){
       const r = resultsCache.get(name);
       if(!r?.isLive || hidden.has(name)) continue;
