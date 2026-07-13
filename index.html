@@ -150,28 +150,10 @@
       align-items: stretch; justify-content: stretch;
       z-index: 10000;
     }
-    body.matrix-page-mode {
-      padding: 0;
-      background: #000;
-    }
-    body.matrix-page-mode .container,
-    body.matrix-page-mode > .grid {
-      display: none;
-    }
-    body.matrix-page-mode .matrix-backdrop {
-      position: static;
-      min-height: 100vh;
-      background: #000;
-      z-index: auto;
-    }
     .matrix-modal {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       background: #000;
-    }
-    body.matrix-page-mode .matrix-modal {
-      position: relative;
-      min-height: 100vh;
     }
     .matrix-header {
       position:relative;
@@ -1549,9 +1531,8 @@ function openMatrix() {
     return;
   }
 
-  document.body.classList.add('matrix-page-mode');
   matrixBackdrop.style.display = 'flex';
-  document.body.style.overflow = '';
+  document.body.style.overflow = 'hidden';
 
   if (!matrixInitialized) {
     /* First open — build tiles and create players */
