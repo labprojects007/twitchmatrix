@@ -152,21 +152,22 @@
     }
     .matrix-modal {
       position: absolute; inset: 0;
-      display: block;
+      display: flex;
+      flex-direction: column;
       background: #000;
     }
     .matrix-header {
-      position:absolute;
-      top:0; left:0; right:0;
+      position:relative;
+      flex:0 0 auto;
       display:flex;
       align-items:center;
       justify-content:flex-start;
       gap:8px;
-      padding:10px 12px;
+      padding:1px 12px;
       background:rgba(10,10,10,.82);
       border-bottom:1px solid rgba(17,17,17,.82);
       color:#ddd;
-      min-height:42px;
+      min-height:0;
       z-index:10;
     }
     .matrix-close { cursor:pointer; font-size:20px; line-height:1; background:none; border:0; color:#ddd; margin-left:auto; }
@@ -232,8 +233,9 @@
       justify-content:center;
     }
     .matrix-body {
-      position:absolute;
-      inset:0;
+      position:relative;
+      flex:1 1 auto;
+      min-height:0;
       overflow:auto;
       padding:0;
       display:grid;
