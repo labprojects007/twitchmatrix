@@ -797,9 +797,9 @@ async function retrieveAll(full = false){
         finally{ setWorking(chunk, false); }
       }
       if (!full) {
-        const existingNames = new Set([ ...tier1, ...tier2, ...tier3 ]);
+        const existingNames = new Set([ ...tier1, ...tier2, ...tier3, ...getDisplayedMatrixStreams() ].map(n => String(n).toLowerCase()));
         const irlNames = (await fetchCategoryTop("IRL", CATEGORY_FETCH_LIMIT))
-          .filter(n => !existingNames.has(n))
+          .filter(n => !existingNames.has(String(n).toLowerCase()))
           .slice(0, CATEGORY_DISPLAY_LIMIT);
         replaceTier(4, irlNames);
         if (irlNames.length) {
