@@ -491,7 +491,7 @@ const categoryTopQuery = `query CategoryTop($name: String!, $limit: Int!) {
   game(name: $name) {
     id name
     streams(first: $limit, options: { sort: VIEWER_COUNT }) {
-      edges { node { viewersCount broadcaster { login } } }
+      edges { node { broadcaster { login } } }
     }
   }
 }`;
@@ -737,7 +737,6 @@ async function fetchCategoryTop(catName, limit){
       const data = await gqlSingle({ operationName:"CategoryTop", query:categoryTopQuery, variables:{ name:nm, limit } });
       const edges = data?.[0]?.data?.game?.streams?.edges || [];
       const logins = edges.map(e=>e?.node?.broadcaster?.login).filter(Boolean);
-      logins.viewersByLogin = new Map(edges.map(e => [e?.node?.broadcaster?.login, e?.node?.viewersCount]).filter(([login]) => login));
       if(logins.length) return logins;
     }catch(e){ /* try next */ }
   }
@@ -797,10 +796,14 @@ async function retrieveAll(full = false){
       if (!full) {
         const irlNames = await fetchCategoryTop("IRL", 7);
         replaceTier(4, irlNames);
-        irlNames.forEach(name => {
-          resultsCache.set(name, { isLive: true, category: "IRL", viewers: irlNames.viewersByLogin?.get(name) ?? null, title: null });
-          paintLabel(name, resultsCache.get(name));
-        });
+        if (irlNames.length) {
+          const fetched = await fetchBatch(irlNames);
+          fetched.forEach((r, idx) => {
+            const name = irlNames[idx];
+            resultsCache.set(name, r);
+            paintLabel(name, r);
+          });
+        }
       }
       statusEl.textContent = "Retrieve complete. Click Generate to pick from cache.";
       renderTierOnlineSnapshot();
