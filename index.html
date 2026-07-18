@@ -9,6 +9,9 @@
     :root { --accent:#9146FF; --bg:#1d1d1f; --panel:#19191b; --border:#313139; --muted:#bdbdbf; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: var(--bg); color: #f5f5f7; margin:0; padding:20px; font-size:15px; }
+    body.matrix-underlay-blank { background:#000; }
+    body.matrix-underlay-blank > .container,
+    body.matrix-underlay-blank > #gridContainer { display:none; }
     .container { display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
     h1 { margin:4px 0 0; font-size:21px; }
 
@@ -1531,6 +1534,7 @@ function openMatrix() {
     return;
   }
 
+  document.body.classList.add('matrix-underlay-blank');
   matrixBackdrop.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
