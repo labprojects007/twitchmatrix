@@ -172,6 +172,7 @@
     }
     .matrix-options { display:contents; }
     .matrix-options[hidden] { display:none; }
+    .matrix-header:has(.matrix-options[hidden]) { display:none; }
     .matrix-close { cursor:pointer; font-size:20px; line-height:1; background:none; border:0; color:#ddd; margin-left:auto; }
     .matrix-close:hover { color:#fff; }
     .matrix-refresh {
@@ -456,8 +457,8 @@
           <div class="matrix-tier-stats" id="matrixTierStats" aria-live="polite"></div>
           <div class="matrix-refresh-countdown" id="matrixRefreshCountdown" aria-live="polite"></div>
           <div class="matrix-online-feed" id="matrixOnlineFeed" aria-live="polite"></div>
+          <button class="matrix-close" aria-label="Close">×</button>
         </div>
-        <button class="matrix-close" aria-label="Close">×</button>
       </div>
       <div class="matrix-body" id="matrixBody"></div>
     </div>
@@ -1509,7 +1510,7 @@ function applyMatrixLayout() {
   let height = Math.max(0, rect.height - basePaddingTop - basePaddingBottom);
   if (!width || !height) {
     width = Math.max(0, window.innerWidth - basePaddingLeft - basePaddingRight);
-    height = Math.max(0, window.innerHeight - (matrixHeader.offsetHeight || 42) - basePaddingTop - basePaddingBottom);
+    height = Math.max(0, window.innerHeight - matrixHeader.offsetHeight - basePaddingTop - basePaddingBottom);
   }
 
   const cols = optimalCols(n, width, height, gap);
