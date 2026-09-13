@@ -170,6 +170,8 @@
       color:#ddd;
       min-height:42px;
     }
+    .matrix-options { display:contents; }
+    .matrix-options[hidden] { display:none; }
     .matrix-close { cursor:pointer; font-size:20px; line-height:1; background:none; border:0; color:#ddd; margin-left:auto; }
     .matrix-close:hover { color:#fff; }
     .matrix-refresh {
@@ -374,6 +376,8 @@
             <button class="step-btn down" data-target="inputRefresh">▼</button>
           </div>
         </div>
+      </div>
+      <div class="row">
         <div class="field">Resolution
           <select id="inputResolution" class="resolution-select" aria-label="Twitch resolution">
             <option value="160p" selected>160p</option>
@@ -383,6 +387,9 @@
             <option value="1080p">1080p</option>
           </select>
         </div>
+        <label class="field">Options
+          <input type="checkbox" id="inputOptions" aria-label="Show matrix options">
+        </label>
       </div>
 
       <div class="limits-vertical" id="limitsGrid">
@@ -444,10 +451,12 @@
   <div class="matrix-backdrop" id="matrixBackdrop">
     <div class="matrix-modal">
       <div class="matrix-header">
-        <button class="matrix-refresh" id="matrixRefreshBtn">Refresh</button>
-        <div class="matrix-tier-stats" id="matrixTierStats" aria-live="polite"></div>
-        <div class="matrix-refresh-countdown" id="matrixRefreshCountdown" aria-live="polite"></div>
-        <div class="matrix-online-feed" id="matrixOnlineFeed" aria-live="polite"></div>
+        <div class="matrix-options" id="matrixOptions">
+          <button class="matrix-refresh" id="matrixRefreshBtn">Refresh</button>
+          <div class="matrix-tier-stats" id="matrixTierStats" aria-live="polite"></div>
+          <div class="matrix-refresh-countdown" id="matrixRefreshCountdown" aria-live="polite"></div>
+          <div class="matrix-online-feed" id="matrixOnlineFeed" aria-live="polite"></div>
+        </div>
         <button class="matrix-close" aria-label="Close">×</button>
       </div>
       <div class="matrix-body" id="matrixBody"></div>
@@ -504,6 +513,7 @@ const STATIC_HOST = window.location.hostname || window.location.host;
 const statusEl = document.getElementById("status");
 const pickedEl = document.getElementById("pickedNames");
 const matrixTierStatsEl = document.getElementById("matrixTierStats");
+const matrixOptionsEl = document.getElementById("matrixOptions");
 const openBtn = document.getElementById("openLink");
 const multiBtn = document.getElementById("openMulti");
 const matrixBtn = document.getElementById("matrixBtn");
@@ -579,7 +589,7 @@ function syncPinBlacklistButtons(){
   });
 }
 function getSettings(){
-  const defaults={ batch:20, size:6, refresh:0, resolution:MATRIX_RESOLUTION_DEFAULT, limits:[3,1,1,1,0,0], random:[true,true,true,true,true,true] };
+  const defaults={ batch:20, size:6, refresh:0, resolution:MATRIX_RESOLUTION_DEFAULT, options:false, limits:[3,1,1,1,0,0], random:[true,true,true,true,true,true] };
   const savedCookie=loadCookieJSON(COOKIE_SETTINGS_KEY);
   const savedLocal=loadSettings();
   const saved = savedCookie ?? savedLocal;
@@ -588,6 +598,7 @@ function getSettings(){
     size: saved.size ?? defaults.size,
     refresh: saved.refresh ?? defaults.refresh,
     resolution: saved.resolution ?? defaults.resolution,
+    options: saved.options ?? defaults.options,
     limits: Array.isArray(saved.limits)? saved.limits.concat([0,0,0,0,0,0]).slice(0,6) : defaults.limits,
     random: Array.isArray(saved.random)? saved.random.concat([true,true,true,true,true,true]).slice(0,6) : defaults.random
   }:defaults;
@@ -906,12 +917,18 @@ function attachStepperHandlers(){
     });
   });
 }
+function updateMatrixOptionsVisibility(){
+  const showOptions = document.getElementById("inputOptions")?.checked ?? false;
+  matrixOptionsEl.hidden = !showOptions;
+}
 function initPersistence(){
   const s=getSettings();
   document.getElementById("inputBatch").value=s.batch;
   document.getElementById("inputSize").value=s.size;
   document.getElementById("inputRefresh").value=s.refresh;
   document.getElementById("inputResolution").value=s.resolution;
+  document.getElementById("inputOptions").checked=!!s.options;
+  updateMatrixOptionsVisibility();
   ["lim1","lim2","lim3","lim4","lim5","lim6"].forEach((id,i)=>document.getElementById(id).value=s.limits[i]);
   [1,2,3,4,5,6].forEach(i=>document.getElementById("rand"+i).checked=!!s.random[i-1]);
   function persist(){
@@ -920,13 +937,15 @@ function initPersistence(){
       size: parseInt(document.getElementById("inputSize").value||"6",10),
       refresh: parseInt(document.getElementById("inputRefresh").value||"0",10),
       resolution: matrixResolution(),
+      options: document.getElementById("inputOptions").checked,
       limits: [1,2,3,4,5,6].map(i=>parseInt(document.getElementById("lim"+i).value||"0",10) || 0),
       random: [1,2,3,4,5,6].map(i=>document.getElementById("rand"+i).checked)
     };
     saveSettings(nextSettings);
     writeCookie(COOKIE_SETTINGS_KEY, JSON.stringify(nextSettings));
   }
-  document.querySelectorAll('#inputBatch,#inputSize,#inputRefresh,#inputResolution,#lim1,#lim2,#lim3,#lim4,#lim5,#lim6').forEach(el=>el.addEventListener("change", persist));
+  document.querySelectorAll('#inputBatch,#inputSize,#inputRefresh,#inputResolution,#inputOptions,#lim1,#lim2,#lim3,#lim4,#lim5,#lim6').forEach(el=>el.addEventListener("change", persist));
+  document.getElementById("inputOptions").addEventListener("change", updateMatrixOptionsVisibility);
   [1,2,3,4,5,6].forEach(i=>document.getElementById("lim"+i).addEventListener("change", renderTierOnlineSnapshot));
   document.getElementById("inputRefresh").addEventListener("change", () => {
     if (matrixBackdrop.style.display === 'flex') startMatrixRefreshInterval();
